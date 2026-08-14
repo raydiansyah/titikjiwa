@@ -191,6 +191,7 @@ async def login(payload: LoginInput, request: Request, response: Response):
     if user.get("disabled"):
         raise HTTPException(status_code=403, detail="Akun ini sedang dinonaktifkan.")
     await db.login_attempts.delete_one({"identifier": identifier})
+    await db.users.update_one({"id": user["id"]}, {"$set": {"prev_seen_at": user.get("last_seen_at"), "last_seen_at": now_iso()}})
     set_auth_cookies(response, user)
     return {"user": public_user(user)}
 
@@ -304,6 +305,49 @@ async def react_post(post_id: str, payload: ReactInput, user=Depends(current_use
         label = {"hug": "Pelukan", "strength": "Kekuatan", "relate": "Aku paham"}[payload.type]
         await db.notifications.insert_one({"id": str(uuid.uuid4()), "user_id": post["author_id"], "text": f"Seseorang mengirim {label} untuk ceritamu \u201c{post['title'][:60]}\u201d.", "read": False, "created_at": now_iso()})
     return {"ok": True}
+
+def last_seen_text(iso):
+    if not iso:
+        return None
+    try:
+        delta = datetime.now(timezone.utc) - datetime.fromisoformat(iso)
+    except ValueError:
+        return None
+    days = delta.days
+    if days <= 0:
+        return "hari ini"
+    if days == 1:
+        return "kemarin"
+    if days < 30:
+        return f"{days} hari yang lalu"
+    return f"{days // 30} bulan yang lalu"
+
+AURA_PALETTE = {"Tenang": "#4a6b5d", "Berharap": "#c98a66", "Bingung": "#c2a686", "Berat": "#6b7c8a", "Netral": "#b5aca0"}
+AURA_NAME = {"Tenang": "Air yang Tenang", "Berharap": "Fajar Bersemi", "Bingung": "Kabut Pagi", "Berat": "Mendung yang Jujur", "Netral": "Tanah Lapang"}
+AURA_DESC = {
+    "Tenang": "Ketenangan mendominasi catatanmu. Pertahankan ritual kecil yang menopangnya.",
+    "Berharap": "Ada cahaya yang tumbuh dalam tulisanmu. Harapanmu mulai berakar.",
+    "Bingung": "Kabut berarti kamu sedang bergerak. Pelan-pelan, arah akan tampak.",
+    "Berat": "Bebanmu nyata, dan kamu tetap memilih menulis. Itu keberanian.",
+    "Netral": "Ketenangan netral adalah tanah lapang yang siap ditumbuhi.",
+}
+
+@api_router.get("/me/aura")
+async def my_aura(user=Depends(current_user)):
+    entries = await db.journals.find({"user_id": user["id"]}, {"_id": 0, "mood": 1}).to_list(200)
+    counts = {}
+    for entry in entries:
+        counts[entry["mood"]] = counts.get(entry["mood"], 0) + 1
+    ordered = sorted(counts.items(), key=lambda kv: kv[1], reverse=True)
+    if not ordered:
+        aura = {"name": "Embun Pagi", "colors": ["#4a6b5d", "#c2a686", "#e9e2d2"], "description": "Ruangmu masih baru — aura lembut ini siap berubah mengikuti perjalananmu."}
+    else:
+        colors = [AURA_PALETTE[mood] for mood, _ in ordered[:3] if mood in AURA_PALETTE] or ["#4a6b5d"]
+        if len(colors) == 1:
+            colors.append("#e9e2d2")
+        dominant = ordered[0][0]
+        aura = {"name": AURA_NAME.get(dominant, "Embun Pagi"), "colors": colors, "description": AURA_DESC.get(dominant, "")}
+    return {**aura, "journals": len(entries), "last_seen": last_seen_text(user.get("prev_seen_at"))}
 
 @api_router.get("/notifications")
 async def list_notifications(user=Depends(current_user)):
