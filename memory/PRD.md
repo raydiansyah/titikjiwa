@@ -17,10 +17,10 @@ Aplikasi untuk membantu pengguna memproses dan menyembuhkan trauma: jurnal priba
 ## Implemented
 - 2026-07 (sesi 1): Setup full-stack, desain Organic & Earthy, jurnal privat CRUD, komunitas anonim (support, komentar, report, sensitive warning), artikel, direktori psikolog + booking konsultasi, landing page interaktif dengan breathing ritual
 - 2026-08-14 (sesi 2): Standardisasi auth Email & Password sesuai playbook — refresh token httpOnly, endpoint /auth/refresh, /auth/forgot-password, /auth/reset-password, brute-force protection (x-forwarded-for aware), index MongoDB, frontend murni cookie-based (tanpa localStorage)
+- 2026-08-14 (sesi 3): Pencarian komunitas fungsional (filter judul/isi/topik + status kosong), animasi gulir whileInView di semua section landing, dasbor moderasi admin (tinjau laporan, hapus cerita, abaikan laporan, terbitkan artikel; endpoint /api/admin/* dengan guard role admin)
 
 ## Backlog
 - P1: UI lupa/atur-ulang kata sandi di halaman auth
-- P1: Perkaya animasi scroll (whileInView reveals) di semua section landing
-- P2: Filter kategori artikel & pencarian komunitas fungsional
-- P2: Dashboard admin untuk moderasi report & publikasi artikel
-- P2: Notifikasi email untuk konsultasi (Resend)
+- P2: Filter kategori artikel di ruang Belajar
+- P2: Notifikasi email untuk konsultasi & reset sandi (Resend)
+- P2: Statistik suasana hati dari jurnal (grafik mingguan)

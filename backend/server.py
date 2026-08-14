@@ -277,6 +277,48 @@ async def report_post(post_id: str, user=Depends(current_user)):
     await db.reports.insert_one({"id": str(uuid.uuid4()), "post_id": post_id, "user_id": user["id"], "created_at": now_iso()})
     return {"ok": True, "message": "Laporan diterima dan akan ditinjau tim kami."}
 
+class ArticleCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=160)
+    excerpt: str = Field(min_length=1, max_length=600)
+    category: str = Field(min_length=1, max_length=60)
+    read_time: str = "5 menit"
+
+async def require_admin(user=Depends(current_user)):
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Halaman ini khusus admin.")
+    return user
+
+@api_router.get("/admin/reports")
+async def admin_reports(admin=Depends(require_admin)):
+    reports = await db.reports.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    post_ids = list({report["post_id"] for report in reports})
+    posts_map = {}
+    if post_ids:
+        posts_map = {post["id"]: post for post in await db.posts.find({"id": {"$in": post_ids}}, {"_id": 0, "author_id": 0}).to_list(200)}
+    return [{**report, "post": posts_map.get(report["post_id"])} for report in reports]
+
+@api_router.post("/admin/reports/{report_id}/dismiss")
+async def dismiss_report(report_id: str, admin=Depends(require_admin)):
+    result = await db.reports.delete_one({"id": report_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Laporan tidak ditemukan.")
+    return {"ok": True}
+
+@api_router.delete("/admin/posts/{post_id}")
+async def admin_delete_post(post_id: str, admin=Depends(require_admin)):
+    result = await db.posts.delete_one({"id": post_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Cerita tidak ditemukan.")
+    await db.comments.delete_many({"post_id": post_id})
+    await db.reports.delete_many({"post_id": post_id})
+    return {"ok": True}
+
+@api_router.post("/admin/articles")
+async def admin_create_article(payload: ArticleCreate, admin=Depends(require_admin)):
+    article = {"id": str(uuid.uuid4()), "title": payload.title.strip(), "excerpt": payload.excerpt.strip(), "category": payload.category.strip(), "author": admin["alias"], "verified": True, "read_time": payload.read_time, "created_at": now_iso()}
+    await db.articles.insert_one(article)
+    return {key: article[key] for key in article if key != "_id"}
+
 @api_router.get("/articles")
 async def articles():
     return await db.articles.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
