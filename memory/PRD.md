@@ -19,10 +19,11 @@ Aplikasi untuk membantu pengguna memproses dan menyembuhkan trauma: jurnal priba
 - 2026-08-14 (sesi 2): Standardisasi auth Email & Password sesuai playbook — refresh token httpOnly, endpoint /auth/refresh, /auth/forgot-password, /auth/reset-password, brute-force protection (x-forwarded-for aware), index MongoDB, frontend murni cookie-based (tanpa localStorage)
 - 2026-08-14 (sesi 3): Pencarian komunitas fungsional (filter judul/isi/topik + status kosong), animasi gulir whileInView di semua section landing, dasbor moderasi admin (tinjau laporan, hapus cerita, abaikan laporan, terbitkan artikel; endpoint /api/admin/* dengan guard role admin)
 - 2026-08-14 (sesi 4): Grafik rekap suasana hati mingguan di ruang jurnal (stacked bar 4 minggu, murni CSS), filter kategori artikel di ruang Belajar, halaman lupa & atur-ulang kata sandi (/atur-ulang dengan token 1 jam)
-- 2026-08-14 (sesi 5): Integrasi Resend untuk email reset sandi (kode siap, fallback ke log jika RESEND_API_KEY belum diisi — menunggu kunci dari user), prompt jurnal harian bergilir (14 prompt, prefills judul), landing level Awwwards: lenis smooth scroll, hero kinetik masked line reveal + parallax, marquee editorial sage, nomor bab manifes outline 01/02/03, micro-interaction panah CTA
+- 2026-08-14 (sesi 5): Integrasi Resend untuk email reset sandi (kode siap, fallback ke log jika RESEND_API_KEY belum diisi), prompt jurnal harian bergilir (14 prompt, prefills judul), landing level Awwwards: lenis smooth scroll, hero kinetik masked line reveal + parallax, marquee editorial sage, nomor bab manifes outline 01/02/03, micro-interaction panah CTA
+- 2026-08-14 (sesi 6): RESEND_API_KEY dipasang — email lupa sandi sungguhan terkirim (terverifikasi, email ID dari Resend), akun uji raydiansyah@gmail.com dibuat
 
 ## Backlog
-- P0: Isi RESEND_API_KEY di backend/.env (user sedang buat di resend.com), lalu restart backend
+- P1: Verifikasi domain pengirim di Resend agar email bisa dikirim ke alamat mana pun (bukan hanya alamat terverifikasi)
 - P2: Hapus/sunting jurnal lama
 - P2: Email konfirmasi konsultasi (Resend — pakai fungsi yang sama)
 - P2: Statistik dukungan komunitas untuk admin
