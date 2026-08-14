@@ -56,6 +56,7 @@ class PostCreate(BaseModel):
     title: str = Field(min_length=1, max_length=140)
     body: str = Field(min_length=1, max_length=5000)
     topic: str = "Perjalanan pulih"
+    support_type: str = "Butuh didengarkan"
     sensitive: bool = False
 
 class CommentCreate(BaseModel):
@@ -272,19 +273,30 @@ async def create_journal(payload: JournalCreate, user=Depends(current_user)):
     await db.journals.insert_one(entry)
     return {key: entry[key] for key in ("id", "title", "body", "mood", "created_at")}
 
+REACTION_TYPES = ("hug", "strength", "relate")
+
 @api_router.get("/posts")
 async def posts():
-    return await db.posts.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    items = await db.posts.find({}, {"_id": 0, "author_id": 0}).sort("created_at", -1).to_list(100)
+    for item in items:
+        item.setdefault("reactions", {"hug": item.get("support_count", 0), "strength": 0, "relate": 0})
+        item.setdefault("support_type", "Butuh didengarkan")
+    return items
 
 @api_router.post("/posts")
 async def create_post(payload: PostCreate, user=Depends(current_user)):
-    post = {"id": str(uuid.uuid4()), "title": payload.title.strip(), "body": payload.body.strip(), "topic": payload.topic, "alias": "Anonim", "sensitive": payload.sensitive, "support_count": 0, "comment_count": 0, "created_at": now_iso(), "author_id": user["id"]}
+    post = {"id": str(uuid.uuid4()), "title": payload.title.strip(), "body": payload.body.strip(), "topic": payload.topic, "support_type": payload.support_type, "alias": "Anonim", "sensitive": payload.sensitive, "support_count": 0, "reactions": {"hug": 0, "strength": 0, "relate": 0}, "comment_count": 0, "created_at": now_iso(), "author_id": user["id"]}
     await db.posts.insert_one(post)
     return {key: post[key] for key in post if key not in ("author_id", "_id")}
 
-@api_router.post("/posts/{post_id}/support")
-async def support_post(post_id: str, user=Depends(current_user)):
-    result = await db.posts.update_one({"id": post_id}, {"$inc": {"support_count": 1}})
+class ReactInput(BaseModel):
+    type: str
+
+@api_router.post("/posts/{post_id}/react")
+async def react_post(post_id: str, payload: ReactInput, user=Depends(current_user)):
+    if payload.type not in REACTION_TYPES:
+        raise HTTPException(status_code=400, detail="Reaksi tidak dikenal.")
+    result = await db.posts.update_one({"id": post_id}, {"$inc": {f"reactions.{payload.type}": 1}})
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Cerita tidak ditemukan.")
     return {"ok": True}
@@ -293,7 +305,7 @@ async def support_post(post_id: str, user=Depends(current_user)):
 async def add_comment(post_id: str, payload: CommentCreate, user=Depends(current_user)):
     if await db.posts.find_one({"id": post_id}, {"_id": 0}) is None:
         raise HTTPException(status_code=404, detail="Cerita tidak ditemukan.")
-    comment = {"id": str(uuid.uuid4()), "post_id": post_id, "alias": user["alias"], "body": payload.body.strip(), "created_at": now_iso()}
+    comment = {"id": str(uuid.uuid4()), "post_id": post_id, "alias": user["alias"], "role": user.get("role", "member"), "psychologist_id": user.get("psychologist_id"), "body": payload.body.strip(), "created_at": now_iso()}
     await db.comments.insert_one(comment)
     await db.posts.update_one({"id": post_id}, {"$inc": {"comment_count": 1}})
     return {key: comment[key] for key in comment if key != "_id"}
