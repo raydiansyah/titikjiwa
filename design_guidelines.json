@@ -1,0 +1,63 @@
+{
+  "app_name": "Sintesis - Sanctuaries of Healing & Growth",
+  "archetype": "ORGANIC & EARTHY",
+  "color_system": {
+    "primary": "#4A6B5D",
+    "primary_foreground": "#FFFFFF",
+    "secondary": "#E3DDD5",
+    "secondary_foreground": "#2B3A33",
+    "background": "#F7F5F0",
+    "card_background": "#FFFFFF",
+    "muted_foreground": "#6B7A73",
+    "accent": "#C98A66",
+    "border": "#E5E0D8",
+    "forbidden_color_check": "No violet #7351B7, no teal green #1B93A4 used."
+  },
+  "typography": {
+    "headings": {
+      "font_family": "Playfair Display, serif",
+      "weights": ["400", "600", "700"],
+      "letter_spacing": "tracking-tight"
+    },
+    "body": {
+      "font_family": "Plus Jakarta Sans, sans-serif",
+      "weights": ["400", "500", "600"]
+    },
+    "forbidden_font_check": "No Inter for headings, no space grotesk."
+  },
+  "components_and_features": [
+    {
+      "name": "Interactive Landing Page",
+      "features": ["Hero with gentle box-breathing timer", "Engagement CTAs", "Why choose Sintesis", "Target audience segments"]
+    },
+    {
+      "name": "Private Journal",
+      "features": ["Secure mood tracking", "Encrypted private reflections", "Emotional release prompts", "Private diary entries list"]
+    },
+    {
+      "name": "Anonymous Community Feed",
+      "features": ["Alias tagging mandatory", "Sensitive content warnings", "Support reactions (Empathy, Hug, Strength)", "Threaded comments", "Report post modal"]
+    },
+    {
+      "name": "Verified Psychologist Articles & Tips",
+      "features": ["Expert trauma recovery guides", "Free professional advice", "Category filtering"]
+    },
+    {
+      "name": "Psychologist Directory & Consultation",
+      "features": ["Verified professionals profile list", "Free / direct consultation booking flow", "Secure crisis messaging support banner"]
+    }
+  ],
+  "image_urls": [
+    {
+      "category": "hero_background",
+      "url": "https://images.unsplash.com/photo-1740508906488-a3631b429ca0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODh8MHwxfHNlYXJjaHwxfHxtaW5kZnVsJTIwbmF0dXJlJTIwY2FsbSUyMHdhdGVyY29sb3IlMjBwYWludGluZyUyMGFlc3RoZXRpY3xlbnwwfHx8fDE3ODY1OTE2ODN8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Misty calm landscape for healing sanctuary hero"
+    }
+  ],
+  "universal_guidelines": [
+    "All interactive elements must include data-testid attributes",
+    "Never use complete transparent background on headers or overlays",
+    "Mobile responsive with smooth scroll and generous spacing",
+    "No gradient overload or violet colors"
+  ]
+}
