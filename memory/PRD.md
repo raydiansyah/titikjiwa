@@ -23,9 +23,11 @@ Aplikasi untuk membantu pengguna memproses dan menyembuhkan trauma: jurnal priba
 - 2026-08-14 (sesi 6): RESEND_API_KEY dipasang — email lupa sandi sungguhan terkirim (terverifikasi, email ID dari Resend), akun uji raydiansyah@gmail.com dibuat
 - 2026-08-14 (sesi 7): Area dasbor berbasis role — member (ruang pulih), psikolog (dasbor praktik, kotak masuk konsultasi dengan konfirmasi/tolak, tulis artikel), admin (dasbor statistik anggota/cerita/laporan/artikel/konsultasi + moderasi). Backend: guard require_roles, GET /consultations, POST /consultations/{id}/status, GET /admin/stats, POST /articles untuk admin+psikolog. Seed akun psikolog maya@sintesis.id
 - 2026-08-14 (sesi 8): Kelola psikolog dari dasbor admin (tambah akun+profil sekaligus, nonaktifkan/aktifkan — login terblokir & hilang dari direktori saat nonaktif). Profil psikolog: edit spesialisasi/jadwal/kota/bio, upload foto (base64 ≤500KB tampil di direktori), statistik pengguna didampingi/menunggu/artikel. Backend: /admin/psychologists CRUD+toggle, /psychologists/me/profile & /me/stats, flag disabled pada login & sesi
+- 2026-08-14 (sesi 9): Wawancara pengenalan 3 pertanyaan pasca-daftar/masuk (route /wawancara, koleksi profiles, bisa dilewati). Teman AI "Sinta" dengan RAG (gpt-5.4 via EMERGENT_LLM_KEY, emergentintegrations LlmChat streaming): retrieval keyword-overlap dari posts+articles+ai_interactions, dipersonalisasi jawaban wawancara, riwayat tersimpan per user. Jurnal privat dikecualikan dari RAG demi janji privasi
 
 ## Backlog
-- P1: Verifikasi domain pengirim di Resend agar email bisa dikirim ke alamat mana pun (bukan hanya alamat terverifikasi)
+- P1: Verifikasi domain pengirim di Resend agar email bisa dikirim ke alamat mana pun
+- P2: Streaming token-by-token ke UI chat (saat ini stream dikonsumsi di server, respons utuh)
 - P2: Hapus/sunting jurnal lama
 - P2: Email konfirmasi konsultasi (Resend — pakai fungsi yang sama)
-- P2: Pindahkan foto profil ke object storage jika ukuran mulai membebani dokumen MongoDB
+- P2: Upgrade retrieval RAG ke embedding vektor bila volume data membesar

@@ -14,9 +14,11 @@ import logging
 import uuid
 import secrets
 import asyncio
+import re
 import jwt
 import bcrypt
 import resend
+from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone
 from datetime import datetime, timezone, timedelta
 
 
@@ -407,6 +409,84 @@ async def update_psychologist_profile(payload: ProfileUpdate, user=Depends(requi
         update["photo"] = payload.photo
     await db.psychologists.update_one({"id": pid}, {"$set": update})
     return await db.psychologists.find_one({"id": pid}, {"_id": 0})
+
+class OnboardingInput(BaseModel):
+    brings: str = Field(min_length=1, max_length=600)
+    feeling: str = Field(min_length=1, max_length=600)
+    hope: str = Field(min_length=1, max_length=600)
+
+class AiChatInput(BaseModel):
+    message: str = Field(min_length=1, max_length=1200)
+
+@api_router.post("/onboarding")
+async def save_onboarding(payload: OnboardingInput, user=Depends(current_user)):
+    doc = {"user_id": user["id"], "brings": payload.brings.strip(), "feeling": payload.feeling.strip(), "hope": payload.hope.strip(), "updated_at": now_iso()}
+    await db.profiles.update_one({"user_id": user["id"]}, {"$set": doc}, upsert=True)
+    return {"ok": True}
+
+@api_router.get("/onboarding")
+async def get_onboarding(user=Depends(current_user)):
+    profile = await db.profiles.find_one({"user_id": user["id"]}, {"_id": 0, "user_id": 0})
+    if not profile:
+        raise HTTPException(status_code=404, detail="Wawancara belum diisi.")
+    return profile
+
+AI_SYSTEM_BASE = (
+    "Kamu adalah Sinta, teman AI di aplikasi Sintesis, ruang pemulihan trauma. "
+    "Jawab dalam Bahasa Indonesia yang hangat dan manusiawi, singkat (2-4 kalimat). "
+    "Kamu bukan terapis dan tidak memberi diagnosis. Validasi perasaan, lalu tawarkan satu langkah kecil yang lembut. "
+    "Jika ada tanda bahaya atau krisis, arahkan ke bantuan profesional atau layanan darurat dengan penuh kepedulian. "
+    "Boleh mengutip pengalaman komunitas yang relevan, tanpa menyebut nama atau identitas."
+)
+
+def tokenize(text: str):
+    return {w for w in re.findall(r"[a-zà-ÿ]{4,}", text.lower())}
+
+async def retrieve_knowledge(query: str, limit: int = 4):
+    words = tokenize(query)
+    if not words:
+        return []
+    scored = []
+    async for post in db.posts.find({}, {"_id": 0, "title": 1, "body": 1, "topic": 1}).limit(200):
+        text = f"{post['title']} {post['body']} {post['topic']}"
+        score = len(words & tokenize(text))
+        if score:
+            scored.append((score, f"Pengalaman komunitas ({post['topic']}): {post['title']} — {post['body'][:220]}"))
+    async for article in db.articles.find({}, {"_id": 0, "title": 1, "excerpt": 1, "category": 1}).limit(100):
+        text = f"{article['title']} {article['excerpt']} {article['category']}"
+        score = len(words & tokenize(text))
+        if score:
+            scored.append((score, f"Panduan psikolog ({article['category']}): {article['title']} — {article['excerpt'][:220]}"))
+    async for past in db.ai_interactions.find({}, {"_id": 0, "message": 1, "reply": 1}).sort("created_at", -1).limit(150):
+        score = len(words & tokenize(past["message"]))
+        if score:
+            scored.append((score, f"Pernah dibahas: {past['message'][:140]} — Jawaban sebelumnya: {past['reply'][:220]}"))
+    scored.sort(key=lambda item: item[0], reverse=True)
+    return [text for _, text in scored[:limit]]
+
+@api_router.post("/ai/chat")
+async def ai_chat(payload: AiChatInput, user=Depends(current_user)):
+    knowledge = await retrieve_knowledge(payload.message)
+    profile = await db.profiles.find_one({"user_id": user["id"]}, {"_id": 0})
+    parts = [AI_SYSTEM_BASE]
+    if profile:
+        parts.append(f"Tentang pengguna ini dari wawancara pengenalan — yang membawanya ke sini: {profile['brings']}. Yang paling terasa akhir-akhir ini: {profile['feeling']}. Harapannya: {profile['hope']}.")
+    if knowledge:
+        parts.append("Pengetahuan relevan dari komunitas dan psikolog:\n" + "\n".join(f"- {item}" for item in knowledge))
+    chat = LlmChat(api_key=os.environ["EMERGENT_LLM_KEY"], session_id=f"sintesis-{user['id']}", system_message="\n\n".join(parts)).with_model("openai", "gpt-5.4")
+    reply_parts = []
+    async for event in chat.stream_message(UserMessage(text=payload.message)):
+        if isinstance(event, TextDelta):
+            reply_parts.append(event.content)
+        elif isinstance(event, StreamDone):
+            break
+    reply = "".join(reply_parts).strip() or "Aku di sini. Ceritakan sedikit lagi?"
+    await db.ai_interactions.insert_one({"id": str(uuid.uuid4()), "user_id": user["id"], "role": user.get("role", "member"), "message": payload.message.strip(), "reply": reply, "created_at": now_iso()})
+    return {"reply": reply}
+
+@api_router.get("/ai/history")
+async def ai_history(user=Depends(current_user)):
+    return await db.ai_interactions.find({"user_id": user["id"]}, {"_id": 0, "user_id": 0}).sort("created_at", 1).to_list(50)
 
 class ConsultationStatus(BaseModel):
     status: str
