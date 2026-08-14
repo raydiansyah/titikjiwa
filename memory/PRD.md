@@ -30,9 +30,10 @@ Aplikasi untuk membantu pengguna memproses dan menyembuhkan trauma: jurnal priba
 - 2026-08-14 (sesi 13): Audio chime Web Audio API saat balasan AI selesai & saat komentar terkirim (toggle suara di kolom chat). Linimasa publik: jenis dukungan saat posting (Butuh didengarkan/Butuh saran/Merayakan langkah kecil/Butuh kekuatan) tampil sebagai badge, reaksi tiga jenis (Pelukan/Kekuatan/Aku paham, POST /posts/{id}/react menggantikan support), komentar psikolog berlencana "Psikolog" + tautan "Ajukan konsultasi". Komentar menyimpan role & psychologist_id
 - 2026-08-14 (sesi 14): Notifikasi respons — event tersimpan di koleksi notifications saat orang lain mereaksi/membalas cerita; titik merah di menu Linimasa + lonceng Notifikasi dengan panel (polling 30 dtk, buka panel = tandai terbaca). Filter linimasa per jenis dukungan (chip row, gabung dengan pencarian, counter ikut menyesuaikan). Fix: panel notifikasi terbuka ke bawah agar tak menutupi menu
 - 2026-08-14 (sesi 15): Halaman publik /fitur, /tutorial, /privasi, /syarat (komponen InfoPage bernomor bab + reveal). Profil Aura: GET /api/me/aura menghitung distribusi mood jurnal → nama puitis + 2-3 warna conic gradient yang berputar pelan; sapaan "terakhir ke sini X" dari prev_seen_at (login menyimpan last_seen); pengguna baru dapat aura "Embun Pagi"
+- 2026-08-14 (sesi 16): Riwayat aura — snapshot otomatis per minggu ISO ke koleksi aura_history saat /me/aura dipanggil, linimasa titik aura di ruang jurnal (GET /me/aura/history). Bagikan aura — kartu PNG 1080x1350 digambar via canvas 2D (radial gradient berlapis per warna, nama aura, alias, tanggal) dan terunduh sebagai aura-sintesis-{week}.png
 
 ## Backlog
 - P1: Verifikasi domain pengirim di Resend agar email bisa dikirim ke alamat mana pun
 - P2: Hapus/sunting jurnal lama
 - P2: Email konfirmasi konsultasi (Resend — pakai fungsi yang sama)
-- P2: Riwayat aura (linimasa perubahan aura dari waktu ke waktu)
+- P2: Regenerasi saran topik berkala (saat ini dicache permanen setelah generate pertama)

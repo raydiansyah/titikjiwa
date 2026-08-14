@@ -347,7 +347,13 @@ async def my_aura(user=Depends(current_user)):
             colors.append("#e9e2d2")
         dominant = ordered[0][0]
         aura = {"name": AURA_NAME.get(dominant, "Embun Pagi"), "colors": colors, "description": AURA_DESC.get(dominant, "")}
-    return {**aura, "journals": len(entries), "last_seen": last_seen_text(user.get("prev_seen_at"))}
+    week_key = datetime.now(timezone.utc).strftime("%G-W%V")
+    await db.aura_history.update_one({"user_id": user["id"], "week_key": week_key}, {"$set": {**aura, "created_at": now_iso()}}, upsert=True)
+    return {**aura, "journals": len(entries), "last_seen": last_seen_text(user.get("prev_seen_at")), "week_key": week_key}
+
+@api_router.get("/me/aura/history")
+async def aura_history(user=Depends(current_user)):
+    return await db.aura_history.find({"user_id": user["id"]}, {"_id": 0, "user_id": 0}).sort("week_key", -1).to_list(24)
 
 @api_router.get("/notifications")
 async def list_notifications(user=Depends(current_user)):
