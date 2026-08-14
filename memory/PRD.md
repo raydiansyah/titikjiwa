@@ -25,9 +25,10 @@ Aplikasi untuk membantu pengguna memproses dan menyembuhkan trauma: jurnal priba
 - 2026-08-14 (sesi 8): Kelola psikolog dari dasbor admin (tambah akun+profil sekaligus, nonaktifkan/aktifkan — login terblokir & hilang dari direktori saat nonaktif). Profil psikolog: edit spesialisasi/jadwal/kota/bio, upload foto (base64 ≤500KB tampil di direktori), statistik pengguna didampingi/menunggu/artikel. Backend: /admin/psychologists CRUD+toggle, /psychologists/me/profile & /me/stats, flag disabled pada login & sesi
 - 2026-08-14 (sesi 9): Wawancara pengenalan 3 pertanyaan pasca-daftar/masuk (route /wawancara, koleksi profiles, bisa dilewati). Teman AI "Sinta" dengan RAG (gpt-5.4 via EMERGENT_LLM_KEY, emergentintegrations LlmChat streaming): retrieval keyword-overlap dari posts+articles+ai_interactions, dipersonalisasi jawaban wawancara, riwayat tersimpan per user. Jurnal privat dikecualikan dari RAG demi janji privasi
 - 2026-08-14 (sesi 10): Chat AI streaming SSE token-per-token (fetch + ReadableStream di frontend, kursor kedip, X-Accel-Buffering: no). Insight mingguan AI di ruang jurnal (rangkum pola mood+judul 7 hari, cache per minggu di weekly_insights). System prompt AI: teks polos tanpa markdown
+- 2026-08-14 (sesi 11): Tiga gelembung saran topik di atas kolom chat (tampil saat riwayat kosong, klik langsung mengirim). Arsip insight: GET /ai/weekly-insights + linimasa pertumbuhan di ruang jurnal (minggu berjalan di atas, minggu lalu berderet dengan garis waktu)
 
 ## Backlog
 - P1: Verifikasi domain pengirim di Resend agar email bisa dikirim ke alamat mana pun
 - P2: Hapus/sunting jurnal lama
 - P2: Email konfirmasi konsultasi (Resend — pakai fungsi yang sama)
-- P2: Upgrade retrieval RAG ke embedding vektor bila volume data membesar
+- P2: Saran topik AI yang dipersonalisasi dari jawaban wawancara pengguna

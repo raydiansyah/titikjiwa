@@ -524,6 +524,10 @@ async def weekly_insight(user=Depends(current_user)):
     await db.weekly_insights.update_one({"user_id": user["id"], "week_key": week_key}, {"$set": {"text": text, "created_at": now_iso()}}, upsert=True)
     return {"insight": text, "week": week_key, "cached": False}
 
+@api_router.get("/ai/weekly-insights")
+async def weekly_insight_archive(user=Depends(current_user)):
+    return await db.weekly_insights.find({"user_id": user["id"]}, {"_id": 0, "user_id": 0}).sort("week_key", -1).to_list(24)
+
 @api_router.get("/ai/history")
 async def ai_history(user=Depends(current_user)):
     return await db.ai_interactions.find({"user_id": user["id"]}, {"_id": 0, "user_id": 0}).sort("created_at", 1).to_list(50)
