@@ -306,6 +306,23 @@ async def react_post(post_id: str, payload: ReactInput, user=Depends(current_use
         await db.notifications.insert_one({"id": str(uuid.uuid4()), "user_id": post["author_id"], "text": f"Seseorang mengirim {label} untuk ceritamu \u201c{post['title'][:60]}\u201d.", "read": False, "created_at": now_iso()})
     return {"ok": True}
 
+class EmergencyContactInput(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    phone: str = Field(min_length=3, max_length=20)
+
+@api_router.post("/emergency-contact")
+async def save_emergency_contact(payload: EmergencyContactInput, user=Depends(current_user)):
+    contact = {"name": payload.name.strip(), "phone": payload.phone.strip()}
+    await db.profiles.update_one({"user_id": user["id"]}, {"$set": {"emergency_contact": contact, "updated_at": now_iso()}}, upsert=True)
+    return contact
+
+@api_router.get("/emergency-contact")
+async def get_emergency_contact(user=Depends(current_user)):
+    profile = await db.profiles.find_one({"user_id": user["id"]}, {"_id": 0, "emergency_contact": 1})
+    if not profile or not profile.get("emergency_contact"):
+        raise HTTPException(status_code=404, detail="Belum ada kontak kepercayaan.")
+    return profile["emergency_contact"]
+
 def last_seen_text(iso):
     if not iso:
         return None

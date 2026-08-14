@@ -32,9 +32,10 @@ Aplikasi untuk membantu pengguna memproses dan menyembuhkan trauma: jurnal priba
 - 2026-08-14 (sesi 15): Halaman publik /fitur, /tutorial, /privasi, /syarat (komponen InfoPage bernomor bab + reveal). Profil Aura: GET /api/me/aura menghitung distribusi mood jurnal → nama puitis + 2-3 warna conic gradient yang berputar pelan; sapaan "terakhir ke sini X" dari prev_seen_at (login menyimpan last_seen); pengguna baru dapat aura "Embun Pagi"
 - 2026-08-14 (sesi 16): Riwayat aura — snapshot otomatis per minggu ISO ke koleksi aura_history saat /me/aura dipanggil, linimasa titik aura di ruang jurnal (GET /me/aura/history). Bagikan aura — kartu PNG 1080x1350 digambar via canvas 2D (radial gradient berlapis per warna, nama aura, alias, tanggal) dan terunduh sebagai aura-sintesis-{week}.png
 - 2026-08-14 (sesi 17): Titik aura (conic-gradient) menggantikan avatar polos di sidebar dengan tooltip nama aura. Fitur SOS darurat — tombol melayang berdenyut di semua halaman (publik + workspace), modal berisi panggilan cepat tel:112/110/119 dan direktori layanan: SAPA 129 (KemenPPPA), 1500-771 (Kemensos), 1500-567 (Halo Kemenkes), 1500-454 (konsultasi jiwa)
+- 2026-08-14 (sesi 18): SOS otomatis — pola kata kunci krisis (CRISIS_PATTERN regex) di pesan Teman AI memicu event "sintesis:open-sos" yang membuka panel SOS proaktif (tanpa false positive pada pesan biasa). Kontak darurat pribadi — POST/GET /api/emergency-contact (disimpan di profiles.emergency_contact), panel SOS menampilkan kartu panggil cepat atau formulir simpan nama+telepon
 
 ## Backlog
 - P1: Verifikasi domain pengirim di Resend agar email bisa dikirim ke alamat mana pun
 - P2: Hapus/sunting jurnal lama
 - P2: Email konfirmasi konsultasi (Resend — pakai fungsi yang sama)
-- P2: Deteksi kata kunci krisis di chat AI → otomatis buka panel SOS
+- P2: Deteksi krisis juga di balasan AI (dual-side) dan eskalasi ke admin untuk kasus berat
