@@ -73,7 +73,7 @@ def now_iso():
     return datetime.now(timezone.utc).isoformat()
 
 def public_user(user):
-    return {"id": user["id"], "email": user["email"], "alias": user["alias"], "role": user.get("role", "member")}
+    return {"id": user["id"], "email": user["email"], "alias": user["alias"], "role": user.get("role", "member"), "psychologist_id": user.get("psychologist_id")}
 
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
@@ -101,6 +101,8 @@ async def current_user(request: Request):
         user = await db.users.find_one({"id": payload.get("sub")}, {"_id": 0})
         if not user:
             raise HTTPException(status_code=401, detail="Sesi tidak ditemukan.")
+        if user.get("disabled"):
+            raise HTTPException(status_code=401, detail="Akun ini sedang dinonaktifkan.")
         return user
     except jwt.InvalidTokenError as exc:
         raise HTTPException(status_code=401, detail="Sesi sudah berakhir.") from exc
@@ -181,6 +183,8 @@ async def login(payload: LoginInput, request: Request, response: Response):
     if not user or not verify_password(payload.password, user["password_hash"]):
         await record_failed_attempt(identifier)
         raise HTTPException(status_code=401, detail="Email atau kata sandi belum tepat.")
+    if user.get("disabled"):
+        raise HTTPException(status_code=403, detail="Akun ini sedang dinonaktifkan.")
     await db.login_attempts.delete_one({"identifier": identifier})
     set_auth_cookies(response, user)
     return {"user": public_user(user)}
@@ -345,6 +349,65 @@ async def admin_create_article(payload: ArticleCreate, admin=Depends(require_rol
     await db.articles.insert_one(article)
     return {key: article[key] for key in article if key != "_id"}
 
+class PsychologistCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=120)
+    email: EmailStr
+    password: str = Field(min_length=8)
+    specialty: str = Field(min_length=1, max_length=120)
+    availability: str = Field(min_length=1, max_length=80)
+    city: str = "Online"
+    bio: str = Field(min_length=1, max_length=600)
+
+class ProfileUpdate(BaseModel):
+    specialty: str = Field(min_length=1, max_length=120)
+    availability: str = Field(min_length=1, max_length=80)
+    city: str = "Online"
+    bio: str = Field(min_length=1, max_length=600)
+    photo: Optional[str] = None
+
+@api_router.get("/admin/psychologists")
+async def admin_psychologists(admin=Depends(require_admin)):
+    return await db.psychologists.find({}, {"_id": 0}).to_list(100)
+
+@api_router.post("/admin/psychologists")
+async def admin_create_psychologist(payload: PsychologistCreate, admin=Depends(require_admin)):
+    email = payload.email.lower()
+    if await db.users.find_one({"email": email}, {"_id": 0}):
+        raise HTTPException(status_code=409, detail="Email sudah terdaftar.")
+    psy_id = str(uuid.uuid4())
+    initials = "".join(part[0] for part in payload.name.replace(",", " ").split() if part[0].isalpha())[:2].upper()
+    await db.psychologists.insert_one({"id": psy_id, "name": payload.name.strip(), "specialty": payload.specialty.strip(), "city": payload.city.strip(), "availability": payload.availability.strip(), "bio": payload.bio.strip(), "initials": initials or "PS", "verified": True, "active": True})
+    await db.users.insert_one({"id": str(uuid.uuid4()), "email": email, "password_hash": hash_password(payload.password), "alias": payload.name.strip(), "role": "psikolog", "psychologist_id": psy_id, "created_at": now_iso()})
+    return {"ok": True, "id": psy_id}
+
+@api_router.post("/admin/psychologists/{psy_id}/toggle")
+async def admin_toggle_psychologist(psy_id: str, admin=Depends(require_admin)):
+    psy = await db.psychologists.find_one({"id": psy_id}, {"_id": 0})
+    if not psy:
+        raise HTTPException(status_code=404, detail="Psikolog tidak ditemukan.")
+    active = not psy.get("active", True)
+    await db.psychologists.update_one({"id": psy_id}, {"$set": {"active": active}})
+    await db.users.update_many({"psychologist_id": psy_id}, {"$set": {"disabled": not active}})
+    return {"ok": True, "active": active}
+
+@api_router.get("/psychologists/me/stats")
+async def psychologist_stats(user=Depends(require_roles("psikolog"))):
+    pid = user.get("psychologist_id", "-")
+    return {"assisted": await db.consultations.count_documents({"psychologist_id": pid, "status": "Terkonfirmasi"}), "pending": await db.consultations.count_documents({"psychologist_id": pid, "status": "Menunggu konfirmasi"}), "articles": await db.articles.count_documents({"author": user["alias"]})}
+
+@api_router.post("/psychologists/me/profile")
+async def update_psychologist_profile(payload: ProfileUpdate, user=Depends(require_roles("psikolog"))):
+    pid = user.get("psychologist_id")
+    if not pid:
+        raise HTTPException(status_code=400, detail="Akun ini belum terhubung ke profil psikolog.")
+    update = {"specialty": payload.specialty.strip(), "availability": payload.availability.strip(), "city": payload.city.strip(), "bio": payload.bio.strip()}
+    if payload.photo:
+        if not payload.photo.startswith("data:image/") or len(payload.photo) > 700_000:
+            raise HTTPException(status_code=400, detail="Foto harus berupa gambar maksimal 500 KB.")
+        update["photo"] = payload.photo
+    await db.psychologists.update_one({"id": pid}, {"$set": update})
+    return await db.psychologists.find_one({"id": pid}, {"_id": 0})
+
 class ConsultationStatus(BaseModel):
     status: str
 
@@ -376,7 +439,7 @@ async def articles():
 
 @api_router.get("/psychologists")
 async def psychologists():
-    return await db.psychologists.find({}, {"_id": 0}).to_list(100)
+    return await db.psychologists.find({"active": {"$ne": False}}, {"_id": 0}).to_list(100)
 
 @api_router.post("/consultations")
 async def consultations(payload: ConsultationCreate, user=Depends(current_user)):
