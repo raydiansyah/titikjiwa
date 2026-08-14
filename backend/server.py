@@ -524,6 +524,34 @@ async def weekly_insight(user=Depends(current_user)):
     await db.weekly_insights.update_one({"user_id": user["id"], "week_key": week_key}, {"$set": {"text": text, "created_at": now_iso()}}, upsert=True)
     return {"insight": text, "week": week_key, "cached": False}
 
+DEFAULT_SUGGESTIONS = ["Aku sulit tidur akhir-akhir ini", "Aku merasa bersalah saat menetapkan batasan", "Bagaimana cara memulai jurnal pertamaku?"]
+
+@api_router.get("/ai/suggestions")
+async def ai_suggestions(user=Depends(current_user)):
+    profile = await db.profiles.find_one({"user_id": user["id"]}, {"_id": 0})
+    if not profile:
+        return {"suggestions": DEFAULT_SUGGESTIONS}
+    if profile.get("suggestions"):
+        return {"suggestions": profile["suggestions"]}
+    prompt = (
+        "Berdasarkan jawaban wawancara pengguna berikut:\n"
+        f"- Yang membawanya ke sini: {profile['brings']}\n"
+        f"- Yang paling terasa akhir-akhir ini: {profile['feeling']}\n"
+        f"- Harapannya: {profile['hope']}\n\n"
+        "Buat 3 saran kalimat pembuka yang bisa pengguna kirim ke teman AI. Syarat: orang pertama, lembut, maksimal 10 kata per kalimat, Bahasa Indonesia. Tulis hanya 3 baris tanpa nomor, tanpa tanda bintang."
+    )
+    chat = LlmChat(api_key=os.environ["EMERGENT_LLM_KEY"], session_id=f"suggest-{user['id']}", system_message="Kamu membantu merumuskan kalimat pembuka yang personal dan lembut.").with_model("openai", "gpt-5.4")
+    reply_parts = []
+    async for event in chat.stream_message(UserMessage(text=prompt)):
+        if isinstance(event, TextDelta):
+            reply_parts.append(event.content)
+        elif isinstance(event, StreamDone):
+            break
+    lines = [line.strip().strip("-•0123. ").strip('"') for line in "".join(reply_parts).split("\n") if line.strip()]
+    suggestions = [line for line in lines if 5 <= len(line) <= 120][:3] or DEFAULT_SUGGESTIONS
+    await db.profiles.update_one({"user_id": user["id"]}, {"$set": {"suggestions": suggestions}})
+    return {"suggestions": suggestions}
+
 @api_router.get("/ai/weekly-insights")
 async def weekly_insight_archive(user=Depends(current_user)):
     return await db.weekly_insights.find({"user_id": user["id"]}, {"_id": 0, "user_id": 0}).sort("week_key", -1).to_list(24)

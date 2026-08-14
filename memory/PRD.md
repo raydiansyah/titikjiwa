@@ -26,9 +26,10 @@ Aplikasi untuk membantu pengguna memproses dan menyembuhkan trauma: jurnal priba
 - 2026-08-14 (sesi 9): Wawancara pengenalan 3 pertanyaan pasca-daftar/masuk (route /wawancara, koleksi profiles, bisa dilewati). Teman AI "Sinta" dengan RAG (gpt-5.4 via EMERGENT_LLM_KEY, emergentintegrations LlmChat streaming): retrieval keyword-overlap dari posts+articles+ai_interactions, dipersonalisasi jawaban wawancara, riwayat tersimpan per user. Jurnal privat dikecualikan dari RAG demi janji privasi
 - 2026-08-14 (sesi 10): Chat AI streaming SSE token-per-token (fetch + ReadableStream di frontend, kursor kedip, X-Accel-Buffering: no). Insight mingguan AI di ruang jurnal (rangkum pola mood+judul 7 hari, cache per minggu di weekly_insights). System prompt AI: teks polos tanpa markdown
 - 2026-08-14 (sesi 11): Tiga gelembung saran topik di atas kolom chat (tampil saat riwayat kosong, klik langsung mengirim). Arsip insight: GET /ai/weekly-insights + linimasa pertumbuhan di ruang jurnal (minggu berjalan di atas, minggu lalu berderet dengan garis waktu)
+- 2026-08-14 (sesi 12): Saran topik personal — GET /ai/suggestions menggenerate 3 kalimat pembuka dari jawaban wawancara via gpt-5.4, dicache di profiles.suggestions; fallback ke saran default jika belum isi wawancara
 
 ## Backlog
 - P1: Verifikasi domain pengirim di Resend agar email bisa dikirim ke alamat mana pun
 - P2: Hapus/sunting jurnal lama
 - P2: Email konfirmasi konsultasi (Resend — pakai fungsi yang sama)
-- P2: Saran topik AI yang dipersonalisasi dari jawaban wawancara pengguna
+- P2: Regenerasi saran topik berkala (saat ini dicache permanen setelah generate pertama)
