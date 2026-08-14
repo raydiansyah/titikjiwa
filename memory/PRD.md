@@ -21,9 +21,10 @@ Aplikasi untuk membantu pengguna memproses dan menyembuhkan trauma: jurnal priba
 - 2026-08-14 (sesi 4): Grafik rekap suasana hati mingguan di ruang jurnal (stacked bar 4 minggu, murni CSS), filter kategori artikel di ruang Belajar, halaman lupa & atur-ulang kata sandi (/atur-ulang dengan token 1 jam)
 - 2026-08-14 (sesi 5): Integrasi Resend untuk email reset sandi (kode siap, fallback ke log jika RESEND_API_KEY belum diisi), prompt jurnal harian bergilir (14 prompt, prefills judul), landing level Awwwards: lenis smooth scroll, hero kinetik masked line reveal + parallax, marquee editorial sage, nomor bab manifes outline 01/02/03, micro-interaction panah CTA
 - 2026-08-14 (sesi 6): RESEND_API_KEY dipasang — email lupa sandi sungguhan terkirim (terverifikasi, email ID dari Resend), akun uji raydiansyah@gmail.com dibuat
+- 2026-08-14 (sesi 7): Area dasbor berbasis role — member (ruang pulih), psikolog (dasbor praktik, kotak masuk konsultasi dengan konfirmasi/tolak, tulis artikel), admin (dasbor statistik anggota/cerita/laporan/artikel/konsultasi + moderasi). Backend: guard require_roles, GET /consultations, POST /consultations/{id}/status, GET /admin/stats, POST /articles untuk admin+psikolog. Seed akun psikolog maya@sintesis.id
 
 ## Backlog
 - P1: Verifikasi domain pengirim di Resend agar email bisa dikirim ke alamat mana pun (bukan hanya alamat terverifikasi)
 - P2: Hapus/sunting jurnal lama
 - P2: Email konfirmasi konsultasi (Resend — pakai fungsi yang sama)
-- P2: Statistik dukungan komunitas untuk admin
+- P2: Admin kelola akun psikolog (tambah/nonaktifkan) dari dasbor

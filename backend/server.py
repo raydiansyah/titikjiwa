@@ -114,6 +114,9 @@ async def seed_content():
         await db.users.insert_one({"id": str(uuid.uuid4()), "email": os.environ["ADMIN_EMAIL"], "password_hash": hash_password(os.environ["ADMIN_PASSWORD"]), "alias": "Tim Sintesis", "role": "admin", "created_at": now_iso()})
     elif not verify_password(os.environ["ADMIN_PASSWORD"], admin["password_hash"]):
         await db.users.update_one({"email": os.environ["ADMIN_EMAIL"]}, {"$set": {"password_hash": hash_password(os.environ["ADMIN_PASSWORD"])}})
+    psy_email = os.environ.get("PSY_EMAIL")
+    if psy_email and await db.users.find_one({"email": psy_email}, {"_id": 0}) is None:
+        await db.users.insert_one({"id": str(uuid.uuid4()), "email": psy_email, "password_hash": hash_password(os.environ["PSY_PASSWORD"]), "alias": "dr. Maya Pradipta", "role": "psikolog", "psychologist_id": "psy-maya", "created_at": now_iso()})
     if await db.posts.count_documents({}) == 0:
         await db.posts.insert_many([
             {"id": "post-batas", "title": "Belajar berkata tidak tanpa rasa bersalah", "body": "Dulu saya mengira menjaga diri berarti mengecewakan orang lain. Pelan-pelan saya belajar bahwa batasan adalah bentuk kasih pada diri sendiri.", "topic": "Batasan diri", "alias": "Ruang Teduh", "sensitive": False, "support_count": 42, "comment_count": 6, "created_at": now_iso()},
@@ -302,10 +305,14 @@ class ArticleCreate(BaseModel):
     category: str = Field(min_length=1, max_length=60)
     read_time: str = "5 menit"
 
-async def require_admin(user=Depends(current_user)):
-    if user.get("role") != "admin":
-        raise HTTPException(status_code=403, detail="Halaman ini khusus admin.")
-    return user
+def require_roles(*roles):
+    async def checker(user=Depends(current_user)):
+        if user.get("role") not in roles:
+            raise HTTPException(status_code=403, detail="Kamu tidak punya akses ke halaman ini.")
+        return user
+    return checker
+
+require_admin = require_roles("admin")
 
 @api_router.get("/admin/reports")
 async def admin_reports(admin=Depends(require_admin)):
@@ -332,11 +339,36 @@ async def admin_delete_post(post_id: str, admin=Depends(require_admin)):
     await db.reports.delete_many({"post_id": post_id})
     return {"ok": True}
 
-@api_router.post("/admin/articles")
-async def admin_create_article(payload: ArticleCreate, admin=Depends(require_admin)):
+@api_router.post("/articles")
+async def admin_create_article(payload: ArticleCreate, admin=Depends(require_roles("admin", "psikolog"))):
     article = {"id": str(uuid.uuid4()), "title": payload.title.strip(), "excerpt": payload.excerpt.strip(), "category": payload.category.strip(), "author": admin["alias"], "verified": True, "read_time": payload.read_time, "created_at": now_iso()}
     await db.articles.insert_one(article)
     return {key: article[key] for key in article if key != "_id"}
+
+class ConsultationStatus(BaseModel):
+    status: str
+
+@api_router.get("/consultations")
+async def list_consultations(user=Depends(require_roles("admin", "psikolog"))):
+    query = {} if user["role"] == "admin" else {"psychologist_id": user.get("psychologist_id", "-")}
+    items = await db.consultations.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    for item in items:
+        item.pop("user_id", None)
+    return items
+
+@api_router.post("/consultations/{consultation_id}/status")
+async def update_consultation_status(consultation_id: str, payload: ConsultationStatus, user=Depends(require_roles("admin", "psikolog"))):
+    if payload.status not in ("Terkonfirmasi", "Ditolak"):
+        raise HTTPException(status_code=400, detail="Status tidak dikenal.")
+    query = {"id": consultation_id} if user["role"] == "admin" else {"id": consultation_id, "psychologist_id": user.get("psychologist_id", "-")}
+    result = await db.consultations.update_one(query, {"$set": {"status": payload.status}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Permintaan konsultasi tidak ditemukan.")
+    return {"ok": True}
+
+@api_router.get("/admin/stats")
+async def admin_stats(admin=Depends(require_admin)):
+    return {"members": await db.users.count_documents({"role": "member"}), "posts": await db.posts.count_documents({}), "reports_open": await db.reports.count_documents({}), "articles": await db.articles.count_documents({}), "consultations": await db.consultations.count_documents({})}
 
 @api_router.get("/articles")
 async def articles():
