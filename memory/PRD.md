@@ -28,6 +28,7 @@ Aplikasi untuk membantu pengguna memproses dan menyembuhkan trauma: jurnal priba
 - 2026-08-14 (sesi 11): Tiga gelembung saran topik di atas kolom chat (tampil saat riwayat kosong, klik langsung mengirim). Arsip insight: GET /ai/weekly-insights + linimasa pertumbuhan di ruang jurnal (minggu berjalan di atas, minggu lalu berderet dengan garis waktu)
 - 2026-08-14 (sesi 12): Saran topik personal — GET /ai/suggestions menggenerate 3 kalimat pembuka dari jawaban wawancara via gpt-5.4, dicache di profiles.suggestions; fallback ke saran default jika belum isi wawancara
 - 2026-08-14 (sesi 13): Audio chime Web Audio API saat balasan AI selesai & saat komentar terkirim (toggle suara di kolom chat). Linimasa publik: jenis dukungan saat posting (Butuh didengarkan/Butuh saran/Merayakan langkah kecil/Butuh kekuatan) tampil sebagai badge, reaksi tiga jenis (Pelukan/Kekuatan/Aku paham, POST /posts/{id}/react menggantikan support), komentar psikolog berlencana "Psikolog" + tautan "Ajukan konsultasi". Komentar menyimpan role & psychologist_id
+- 2026-08-14 (sesi 14): Notifikasi respons — event tersimpan di koleksi notifications saat orang lain mereaksi/membalas cerita; titik merah di menu Linimasa + lonceng Notifikasi dengan panel (polling 30 dtk, buka panel = tandai terbaca). Filter linimasa per jenis dukungan (chip row, gabung dengan pencarian, counter ikut menyesuaikan). Fix: panel notifikasi terbuka ke bawah agar tak menutupi menu
 
 ## Backlog
 - P1: Verifikasi domain pengirim di Resend agar email bisa dikirim ke alamat mana pun

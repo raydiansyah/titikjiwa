@@ -296,9 +296,22 @@ class ReactInput(BaseModel):
 async def react_post(post_id: str, payload: ReactInput, user=Depends(current_user)):
     if payload.type not in REACTION_TYPES:
         raise HTTPException(status_code=400, detail="Reaksi tidak dikenal.")
-    result = await db.posts.update_one({"id": post_id}, {"$inc": {f"reactions.{payload.type}": 1}})
-    if result.matched_count == 0:
+    post = await db.posts.find_one({"id": post_id}, {"_id": 0, "author_id": 1, "title": 1})
+    if not post:
         raise HTTPException(status_code=404, detail="Cerita tidak ditemukan.")
+    await db.posts.update_one({"id": post_id}, {"$inc": {f"reactions.{payload.type}": 1}})
+    if post.get("author_id") and post["author_id"] != user["id"]:
+        label = {"hug": "Pelukan", "strength": "Kekuatan", "relate": "Aku paham"}[payload.type]
+        await db.notifications.insert_one({"id": str(uuid.uuid4()), "user_id": post["author_id"], "text": f"Seseorang mengirim {label} untuk ceritamu \u201c{post['title'][:60]}\u201d.", "read": False, "created_at": now_iso()})
+    return {"ok": True}
+
+@api_router.get("/notifications")
+async def list_notifications(user=Depends(current_user)):
+    return await db.notifications.find({"user_id": user["id"]}, {"_id": 0, "user_id": 0}).sort("created_at", -1).to_list(20)
+
+@api_router.post("/notifications/read")
+async def read_notifications(user=Depends(current_user)):
+    await db.notifications.update_many({"user_id": user["id"]}, {"$set": {"read": True}})
     return {"ok": True}
 
 @api_router.post("/posts/{post_id}/comments")
@@ -308,6 +321,9 @@ async def add_comment(post_id: str, payload: CommentCreate, user=Depends(current
     comment = {"id": str(uuid.uuid4()), "post_id": post_id, "alias": user["alias"], "role": user.get("role", "member"), "psychologist_id": user.get("psychologist_id"), "body": payload.body.strip(), "created_at": now_iso()}
     await db.comments.insert_one(comment)
     await db.posts.update_one({"id": post_id}, {"$inc": {"comment_count": 1}})
+    post = await db.posts.find_one({"id": post_id}, {"_id": 0, "author_id": 1, "title": 1})
+    if post and post.get("author_id") and post["author_id"] != user["id"]:
+        await db.notifications.insert_one({"id": str(uuid.uuid4()), "user_id": post["author_id"], "text": f"Seseorang membalas ceritamu \u201c{post['title'][:60]}\u201d.", "read": False, "created_at": now_iso()})
     return {key: comment[key] for key in comment if key != "_id"}
 
 @api_router.get("/posts/{post_id}/comments")
