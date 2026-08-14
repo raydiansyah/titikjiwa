@@ -5,6 +5,7 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 from fastapi import FastAPI, APIRouter, Depends, HTTPException, Request, Response
+from fastapi.responses import StreamingResponse
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
@@ -14,6 +15,7 @@ import logging
 import uuid
 import secrets
 import asyncio
+import json
 import re
 import jwt
 import bcrypt
@@ -436,7 +438,8 @@ AI_SYSTEM_BASE = (
     "Jawab dalam Bahasa Indonesia yang hangat dan manusiawi, singkat (2-4 kalimat). "
     "Kamu bukan terapis dan tidak memberi diagnosis. Validasi perasaan, lalu tawarkan satu langkah kecil yang lembut. "
     "Jika ada tanda bahaya atau krisis, arahkan ke bantuan profesional atau layanan darurat dengan penuh kepedulian. "
-    "Boleh mengutip pengalaman komunitas yang relevan, tanpa menyebut nama atau identitas."
+    "Boleh mengutip pengalaman komunitas yang relevan, tanpa menyebut nama atau identitas. "
+    "Tulis teks polos tanpa format markdown (tanpa tanda bintang, pagar, atau daftar berpoin)."
 )
 
 def tokenize(text: str):
@@ -474,15 +477,52 @@ async def ai_chat(payload: AiChatInput, user=Depends(current_user)):
     if knowledge:
         parts.append("Pengetahuan relevan dari komunitas dan psikolog:\n" + "\n".join(f"- {item}" for item in knowledge))
     chat = LlmChat(api_key=os.environ["EMERGENT_LLM_KEY"], session_id=f"sintesis-{user['id']}", system_message="\n\n".join(parts)).with_model("openai", "gpt-5.4")
+
+    async def event_stream():
+        reply_parts = []
+        try:
+            async for event in chat.stream_message(UserMessage(text=payload.message)):
+                if isinstance(event, TextDelta):
+                    reply_parts.append(event.content)
+                    yield f"data: {json.dumps({'token': event.content})}\n\n"
+                elif isinstance(event, StreamDone):
+                    break
+        except Exception as exc:
+            logger.error("AI stream error: %s", exc)
+            yield f"data: {json.dumps({'error': 'Teman AI sedang terganggu. Coba lagi sebentar.'})}\n\n"
+        reply = "".join(reply_parts).strip()
+        if reply:
+            await db.ai_interactions.insert_one({"id": str(uuid.uuid4()), "user_id": user["id"], "role": user.get("role", "member"), "message": payload.message.strip(), "reply": reply, "created_at": now_iso()})
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+@api_router.post("/ai/weekly-insight")
+async def weekly_insight(user=Depends(current_user)):
+    week_key = datetime.now(timezone.utc).strftime("%G-W%V")
+    existing = await db.weekly_insights.find_one({"user_id": user["id"], "week_key": week_key}, {"_id": 0, "user_id": 0})
+    if existing:
+        return {"insight": existing["text"], "week": week_key, "cached": True}
+    since = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    entries = await db.journals.find({"user_id": user["id"], "created_at": {"$gte": since}}, {"_id": 0, "title": 1, "mood": 1}).to_list(50)
+    if not entries:
+        raise HTTPException(status_code=400, detail="Belum ada jurnal minggu ini untuk diringkas.")
+    summary_lines = "\n".join(f"- [{entry['mood']}] {entry['title']}" for entry in entries)
+    prompt = (
+        "Berikut catatan jurnal pengguna selama 7 hari terakhir (suasana hati dan judulnya):\n"
+        f"{summary_lines}\n\n"
+        "Tulis catatan lembut 3-4 kalimat dalam Bahasa Indonesia: rangkum pola perasaannya minggu ini, hargai usahanya menulis, dan tawarkan satu ajakan kecil untuk minggu depan. Jangan mendiagnosis."
+    )
+    chat = LlmChat(api_key=os.environ["EMERGENT_LLM_KEY"], session_id=f"insight-{user['id']}-{week_key}", system_message="Kamu adalah Sinta, teman AI Sintesis yang hangat dan penuh perhatian.").with_model("openai", "gpt-5.4")
     reply_parts = []
-    async for event in chat.stream_message(UserMessage(text=payload.message)):
+    async for event in chat.stream_message(UserMessage(text=prompt)):
         if isinstance(event, TextDelta):
             reply_parts.append(event.content)
         elif isinstance(event, StreamDone):
             break
-    reply = "".join(reply_parts).strip() or "Aku di sini. Ceritakan sedikit lagi?"
-    await db.ai_interactions.insert_one({"id": str(uuid.uuid4()), "user_id": user["id"], "role": user.get("role", "member"), "message": payload.message.strip(), "reply": reply, "created_at": now_iso()})
-    return {"reply": reply}
+    text = "".join(reply_parts).strip() or "Terima kasih sudah menulis minggu ini. Setiap catatan kecil berarti."
+    await db.weekly_insights.update_one({"user_id": user["id"], "week_key": week_key}, {"$set": {"text": text, "created_at": now_iso()}}, upsert=True)
+    return {"insight": text, "week": week_key, "cached": False}
 
 @api_router.get("/ai/history")
 async def ai_history(user=Depends(current_user)):
