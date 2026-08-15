@@ -372,6 +372,35 @@ async def my_aura(user=Depends(current_user)):
 async def aura_history(user=Depends(current_user)):
     return await db.aura_history.find({"user_id": user["id"]}, {"_id": 0, "user_id": 0}).sort("week_key", -1).to_list(24)
 
+class SafetyPlanInput(BaseModel):
+    signs: str = Field(min_length=1, max_length=300)
+    strategies: str = Field(min_length=1, max_length=300)
+    helpers: str = Field(min_length=1, max_length=300)
+
+@api_router.post("/safety-plan")
+async def save_safety_plan(payload: SafetyPlanInput, user=Depends(current_user)):
+    plan = {"signs": payload.signs.strip(), "strategies": payload.strategies.strip(), "helpers": payload.helpers.strip()}
+    await db.profiles.update_one({"user_id": user["id"]}, {"$set": {"safety_plan": plan, "updated_at": now_iso()}}, upsert=True)
+    return plan
+
+@api_router.get("/safety-plan")
+async def get_safety_plan(user=Depends(current_user)):
+    profile = await db.profiles.find_one({"user_id": user["id"]}, {"_id": 0, "safety_plan": 1})
+    if not profile or not profile.get("safety_plan"):
+        raise HTTPException(status_code=404, detail="Belum ada rencana aman.")
+    return profile["safety_plan"]
+
+@api_router.get("/admin/crisis-alerts")
+async def crisis_alerts(admin=Depends(require_admin)):
+    return await db.crisis_alerts.find({}, {"_id": 0, "user_id": 0}).sort("created_at", -1).to_list(50)
+
+@api_router.post("/admin/crisis-alerts/{alert_id}/acknowledge")
+async def acknowledge_crisis(alert_id: str, admin=Depends(require_admin)):
+    result = await db.crisis_alerts.update_one({"id": alert_id}, {"$set": {"acknowledged": True}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Sinyal tidak ditemukan.")
+    return {"ok": True}
+
 @api_router.get("/notifications")
 async def list_notifications(user=Depends(current_user)):
     return await db.notifications.find({"user_id": user["id"]}, {"_id": 0, "user_id": 0}).sort("created_at", -1).to_list(20)
@@ -562,8 +591,16 @@ async def retrieve_knowledge(query: str, limit: int = 4):
     scored.sort(key=lambda item: item[0], reverse=True)
     return [text for _, text in scored[:limit]]
 
+CRISIS_TERMS = ("bunuh diri", "ingin mati", "pengen mati", "mengakhiri hidup", "akhiri hidup", "menyakiti diri", "melukai diri", "self harm", "self-harm", "sayat", "gantung diri", "tidak ingin hidup", "tidak mau hidup", "lebih baik aku mati", "lebih baik saya mati")
+
+def is_crisis(text: str):
+    lowered = text.lower()
+    return any(term in lowered for term in CRISIS_TERMS)
+
 @api_router.post("/ai/chat")
 async def ai_chat(payload: AiChatInput, user=Depends(current_user)):
+    if is_crisis(payload.message):
+        await db.crisis_alerts.insert_one({"id": str(uuid.uuid4()), "user_id": user["id"], "alias": user["alias"], "excerpt": payload.message[:140], "acknowledged": False, "created_at": now_iso()})
     knowledge = await retrieve_knowledge(payload.message)
     profile = await db.profiles.find_one({"user_id": user["id"]}, {"_id": 0})
     parts = [AI_SYSTEM_BASE]
@@ -678,7 +715,7 @@ async def update_consultation_status(consultation_id: str, payload: Consultation
 
 @api_router.get("/admin/stats")
 async def admin_stats(admin=Depends(require_admin)):
-    return {"members": await db.users.count_documents({"role": "member"}), "posts": await db.posts.count_documents({}), "reports_open": await db.reports.count_documents({}), "articles": await db.articles.count_documents({}), "consultations": await db.consultations.count_documents({})}
+    return {"members": await db.users.count_documents({"role": "member"}), "posts": await db.posts.count_documents({}), "reports_open": await db.reports.count_documents({}), "articles": await db.articles.count_documents({}), "consultations": await db.consultations.count_documents({}), "crisis_open": await db.crisis_alerts.count_documents({"acknowledged": False})}
 
 @api_router.get("/articles")
 async def articles():
