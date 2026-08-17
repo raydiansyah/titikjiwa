@@ -3,7 +3,7 @@ from pathlib import Path
 from dotenv import dotenv_values
 import pytest
 BASE_URL = dotenv_values('/app/frontend/.env')['REACT_APP_BACKEND_URL'].rstrip('/')
-ADMIN_EMAIL = dotenv_values('/app/memory/test_credentials.md') if False else 'admin@sintesis.id'
+ADMIN_EMAIL = dotenv_values('/app/memory/test_credentials.md') if False else 'admin@titikjiwa.id'
 
 @pytest.fixture(scope='module')
 def client():
