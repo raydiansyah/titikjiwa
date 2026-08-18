@@ -1,3 +1,15 @@
+# [1.1.0](https://github.com/raydiansyah/titikjiwa/compare/v1.0.6...v1.1.0) (2026-08-18)
+
+
+### Bug Fixes
+
+* **ci:** pakai email admin domain .id (email-validator menolak TLD reserved .test) ([00d01a9](https://github.com/raydiansyah/titikjiwa/commit/00d01a9c339a667888662f29a7e4e5ba55ff954c))
+
+
+### Features
+
+* **admin:** admin default raydiansyah@gmail.com + kelola semua pengguna ([1dc0f00](https://github.com/raydiansyah/titikjiwa/commit/1dc0f00e73694c476e89ddd4c9889bc699a98519))
+
 ## [1.0.6](https://github.com/raydiansyah/titikjiwa/compare/v1.0.5...v1.0.6) (2026-08-18)
 
 
