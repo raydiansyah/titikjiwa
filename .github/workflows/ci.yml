@@ -38,7 +38,7 @@ jobs:
         env:
           MONGO_URL: mongodb://localhost:27017
           DB_NAME: titikjiwa_ci
-          ADMIN_EMAIL: admin@titikjiwa.id
+          ADMIN_EMAIL: admin@ci.test
           ADMIN_PASSWORD: titikjiwaAdmin123!
           JWT_SECRET: ci-secret-key
           FRONTEND_URL: http://localhost:3000

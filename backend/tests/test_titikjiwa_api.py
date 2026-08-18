@@ -73,3 +73,31 @@ def test_unauthenticated_protection():
     assert anon.get(f"{BASE_URL}/api/journals").status_code == 401
     assert anon.post(f"{BASE_URL}/api/posts", json={"title": "x", "body": "x"}).status_code == 401
     assert anon.get(f"{BASE_URL}/api/notifications").status_code == 401
+
+
+def test_admin_manage_users(client):
+    admin_email = os.environ.get("ADMIN_EMAIL", "admin@ci.test")
+    admin_password = os.environ.get("ADMIN_PASSWORD", "titikjiwaAdmin123!")
+    s = requests.Session()
+    r = s.post(f"{BASE_URL}/api/auth/login", json={"email": admin_email, "password": admin_password})
+    assert r.status_code == 200 and r.json()["user"]["role"] == "admin"
+    # daftar pengguna
+    users = s.get(f"{BASE_URL}/api/admin/users")
+    assert users.status_code == 200 and len(users.json()) >= 1
+    # buat user baru untuk dikelola
+    email = f"kelola{uuid.uuid4().hex[:8]}@test.id"
+    assert client.post(f"{BASE_URL}/api/auth/register", json={"email": email, "password": "Rahasia123", "alias": "User Kelola"}).status_code == 200
+    target = next(u for u in s.get(f"{BASE_URL}/api/admin/users").json() if u["email"] == email)
+    # nonaktifkan -> login harus ditolak
+    assert s.patch(f"{BASE_URL}/api/admin/users/{target['id']}", json={"disabled": True}).status_code == 200
+    assert client.post(f"{BASE_URL}/api/auth/login", json={"email": email, "password": "Rahasia123"}).status_code == 403
+    # reset password + aktifkan kembali -> login dengan password baru sukses
+    assert s.post(f"{BASE_URL}/api/admin/users/{target['id']}/reset-password", json={"password": "Ganti12345"}).status_code == 200
+    assert s.patch(f"{BASE_URL}/api/admin/users/{target['id']}", json={"disabled": False}).status_code == 200
+    assert client.post(f"{BASE_URL}/api/auth/login", json={"email": email, "password": "Ganti12345"}).status_code == 200
+    # proteksi: admin tidak bisa menonaktifkan akun sendiri
+    me = next(u for u in users.json() if u["email"] == admin_email)
+    assert s.patch(f"{BASE_URL}/api/admin/users/{me['id']}", json={"disabled": True}).status_code == 400
+    # hapus user -> login gagal
+    assert s.delete(f"{BASE_URL}/api/admin/users/{target['id']}").status_code == 200
+    assert client.post(f"{BASE_URL}/api/auth/login", json={"email": email, "password": "Ganti12345"}).status_code == 401
