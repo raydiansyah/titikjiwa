@@ -93,8 +93,10 @@ def create_refresh_token(user):
     return jwt.encode({"sub": user["id"], "exp": datetime.now(timezone.utc) + timedelta(days=7), "type": "refresh"}, os.environ["JWT_SECRET"], algorithm=JWT_ALGORITHM)
 
 def set_auth_cookies(response: Response, user):
-    response.set_cookie("access_token", create_access_token(user), httponly=True, secure=True, samesite="none", max_age=900, path="/")
-    response.set_cookie("refresh_token", create_refresh_token(user), httponly=True, secure=True, samesite="none", max_age=604800, path="/")
+    secure = os.environ.get("FRONTEND_URL", "").startswith("https")
+    samesite = "none" if secure else "lax"
+    response.set_cookie("access_token", create_access_token(user), httponly=True, secure=secure, samesite=samesite, max_age=900, path="/")
+    response.set_cookie("refresh_token", create_refresh_token(user), httponly=True, secure=secure, samesite=samesite, max_age=604800, path="/")
 
 async def current_user(request: Request):
     header = request.headers.get("Authorization", "")
