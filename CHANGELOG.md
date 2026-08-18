@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/raydiansyah/titikjiwa/compare/v1.0.0...v1.0.1) (2026-08-18)
+
+
+### Bug Fixes
+
+* **ci:** perbaiki pipeline CI agar hijau ([877d5eb](https://github.com/raydiansyah/titikjiwa/commit/877d5ebf21c52308e7a6277801d07dbd6da57f7b))
+
 # 1.0.0 (2026-08-18)
 
 
