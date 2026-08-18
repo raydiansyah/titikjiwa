@@ -93,8 +93,10 @@ def create_refresh_token(user):
     return jwt.encode({"sub": user["id"], "exp": datetime.now(timezone.utc) + timedelta(days=7), "type": "refresh"}, os.environ["JWT_SECRET"], algorithm=JWT_ALGORITHM)
 
 def set_auth_cookies(response: Response, user):
-    response.set_cookie("access_token", create_access_token(user), httponly=True, secure=True, samesite="none", max_age=900, path="/")
-    response.set_cookie("refresh_token", create_refresh_token(user), httponly=True, secure=True, samesite="none", max_age=604800, path="/")
+    secure = os.environ.get("FRONTEND_URL", "").startswith("https")
+    samesite = "none" if secure else "lax"
+    response.set_cookie("access_token", create_access_token(user), httponly=True, secure=secure, samesite=samesite, max_age=900, path="/")
+    response.set_cookie("refresh_token", create_refresh_token(user), httponly=True, secure=secure, samesite=samesite, max_age=604800, path="/")
 
 async def current_user(request: Request):
     header = request.headers.get("Authorization", "")
@@ -111,6 +113,15 @@ async def current_user(request: Request):
         return user
     except jwt.InvalidTokenError as exc:
         raise HTTPException(status_code=401, detail="Sesi sudah berakhir.") from exc
+
+def require_roles(*roles):
+    async def checker(user=Depends(current_user)):
+        if user.get("role") not in roles:
+            raise HTTPException(status_code=403, detail="Kamu tidak punya akses ke halaman ini.")
+        return user
+    return checker
+
+require_admin = require_roles("admin")
 
 async def seed_content():
     await db.users.create_index("email", unique=True)
@@ -436,15 +447,6 @@ class ArticleCreate(BaseModel):
     excerpt: str = Field(min_length=1, max_length=600)
     category: str = Field(min_length=1, max_length=60)
     read_time: str = "5 menit"
-
-def require_roles(*roles):
-    async def checker(user=Depends(current_user)):
-        if user.get("role") not in roles:
-            raise HTTPException(status_code=403, detail="Kamu tidak punya akses ke halaman ini.")
-        return user
-    return checker
-
-require_admin = require_roles("admin")
 
 @api_router.get("/admin/reports")
 async def admin_reports(admin=Depends(require_admin)):
