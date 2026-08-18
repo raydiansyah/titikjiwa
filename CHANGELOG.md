@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/raydiansyah/titikjiwa/compare/v1.0.1...v1.0.2) (2026-08-18)
+
+
+### Bug Fixes
+
+* **ci:** hapus cache npm (ajv corrupt) dan tambah pytest-xdist ([38bbd94](https://github.com/raydiansyah/titikjiwa/commit/38bbd94db6e74b6041b333718ab99717719ca59b))
+
 ## [1.0.1](https://github.com/raydiansyah/titikjiwa/compare/v1.0.0...v1.0.1) (2026-08-18)
 
 
