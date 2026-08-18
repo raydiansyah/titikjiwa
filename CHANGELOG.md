@@ -1,3 +1,10 @@
+## [1.0.6](https://github.com/raydiansyah/titikjiwa/compare/v1.0.5...v1.0.6) (2026-08-18)
+
+
+### Bug Fixes
+
+* **deps:** pisahkan paket privat Emergent + pin date-fns 3.6.0 agar npm ci/pip install bersih ([63ff827](https://github.com/raydiansyah/titikjiwa/commit/63ff827086816b81d2921ffb809c010d29da8a1c))
+
 ## [1.0.5](https://github.com/raydiansyah/titikjiwa/compare/v1.0.4...v1.0.5) (2026-08-18)
 
 
