@@ -112,6 +112,15 @@ async def current_user(request: Request):
     except jwt.InvalidTokenError as exc:
         raise HTTPException(status_code=401, detail="Sesi sudah berakhir.") from exc
 
+def require_roles(*roles):
+    async def checker(user=Depends(current_user)):
+        if user.get("role") not in roles:
+            raise HTTPException(status_code=403, detail="Kamu tidak punya akses ke halaman ini.")
+        return user
+    return checker
+
+require_admin = require_roles("admin")
+
 async def seed_content():
     await db.users.create_index("email", unique=True)
     await db.login_attempts.create_index("identifier")
@@ -436,15 +445,6 @@ class ArticleCreate(BaseModel):
     excerpt: str = Field(min_length=1, max_length=600)
     category: str = Field(min_length=1, max_length=60)
     read_time: str = "5 menit"
-
-def require_roles(*roles):
-    async def checker(user=Depends(current_user)):
-        if user.get("role") not in roles:
-            raise HTTPException(status_code=403, detail="Kamu tidak punya akses ke halaman ini.")
-        return user
-    return checker
-
-require_admin = require_roles("admin")
 
 @api_router.get("/admin/reports")
 async def admin_reports(admin=Depends(require_admin)):
