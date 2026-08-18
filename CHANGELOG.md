@@ -1,3 +1,10 @@
+## [1.0.3](https://github.com/raydiansyah/titikjiwa/compare/v1.0.2...v1.0.3) (2026-08-18)
+
+
+### Bug Fixes
+
+* **ci:** pin npm 9.2.0 untuk build frontend (npm 10 beda resolve ajv) ([2f4249e](https://github.com/raydiansyah/titikjiwa/commit/2f4249e932658770e59daa751d4d916441fc9ca5))
+
 ## [1.0.2](https://github.com/raydiansyah/titikjiwa/compare/v1.0.1...v1.0.2) (2026-08-18)
 
 
