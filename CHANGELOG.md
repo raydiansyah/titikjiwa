@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/raydiansyah/titikjiwa/compare/v1.1.0...v1.2.0) (2026-08-18)
+
+
+### Features
+
+* **ui:** tampilkan versi aplikasi di footer ([c5fa13a](https://github.com/raydiansyah/titikjiwa/commit/c5fa13ab6afb1cae04169eb11358352217c4a162))
+
 # [1.1.0](https://github.com/raydiansyah/titikjiwa/compare/v1.0.6...v1.1.0) (2026-08-18)
 
 
