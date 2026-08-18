@@ -129,7 +129,7 @@ async def seed_content():
     await db.password_reset_tokens.create_index("expires_at", expireAfterSeconds=0)
     admin = await db.users.find_one({"email": os.environ["ADMIN_EMAIL"]}, {"_id": 0})
     if admin is None:
-        await db.users.insert_one({"id": str(uuid.uuid4()), "email": os.environ["ADMIN_EMAIL"], "password_hash": hash_password(os.environ["ADMIN_PASSWORD"]), "alias": "Tim Sintesis", "role": "admin", "created_at": now_iso()})
+        await db.users.insert_one({"id": str(uuid.uuid4()), "email": os.environ["ADMIN_EMAIL"], "password_hash": hash_password(os.environ["ADMIN_PASSWORD"]), "alias": "Tim titikjiwa", "role": "admin", "created_at": now_iso()})
     elif not verify_password(os.environ["ADMIN_PASSWORD"], admin["password_hash"]):
         await db.users.update_one({"email": os.environ["ADMIN_EMAIL"]}, {"$set": {"password_hash": hash_password(os.environ["ADMIN_PASSWORD"])}})
     psy_email = os.environ.get("PSY_EMAIL")
@@ -145,7 +145,7 @@ async def seed_content():
         await db.articles.insert_many([
             {"id": "article-grounding", "title": "5 cara grounding saat ingatan terasa berat", "excerpt": "Kembali ke saat ini dengan langkah kecil yang bisa dilakukan dalam lima menit.", "category": "Regulasi emosi", "author": "dr. Maya Pradipta", "verified": True, "read_time": "6 menit", "created_at": now_iso()},
             {"id": "article-batas", "title": "Membangun batasan tanpa kehilangan diri", "excerpt": "Batasan bukan tembok. Ia adalah cara memberi tahu dunia bagaimana kita ingin diperlakukan.", "category": "Relasi sehat", "author": "Psikolog Raka Anindya", "verified": True, "read_time": "8 menit", "created_at": now_iso()},
-            {"id": "article-jurnal", "title": "Jurnal reflektif: mulai dari satu kalimat", "excerpt": "Tidak perlu menulis sempurna untuk bisa mendengar isi hati sendiri.", "category": "Jurnal", "author": "Tim Sintesis", "verified": True, "read_time": "4 menit", "created_at": now_iso()},
+            {"id": "article-jurnal", "title": "Jurnal reflektif: mulai dari satu kalimat", "excerpt": "Tidak perlu menulis sempurna untuk bisa mendengar isi hati sendiri.", "category": "Jurnal", "author": "Tim titikjiwa", "verified": True, "read_time": "4 menit", "created_at": now_iso()},
         ])
     if await db.psychologists.count_documents({}) == 0:
         await db.psychologists.insert_many([
@@ -159,7 +159,7 @@ async def startup():
 
 @api_router.get("/")
 async def root():
-    return {"message": "Sintesis API aktif", "service": "sintesis"}
+    return {"message": "titikjiwa API aktif", "service": "titikjiwa"}
 
 MAX_FAILED_ATTEMPTS = 5
 LOCKOUT_MINUTES = 15
@@ -246,13 +246,13 @@ async def forgot_password(payload: ForgotPasswordInput):
                 '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f5f0;padding:40px 0;">'
                 '<tr><td align="center"><table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #e5e0d8;padding:40px 36px;">'
                 '<tr><td style="font-family:Georgia,serif;font-size:22px;color:#2b3a33;padding-bottom:14px;">Atur ulang kata sandimu</td></tr>'
-                '<tr><td style="font-family:Arial,sans-serif;font-size:13px;line-height:1.7;color:#5d6b63;padding-bottom:26px;">Kami menerima permintaan pemulihan untuk akun Sintesis kamu. Tautan ini berlaku satu jam dan hanya bisa dipakai sekali.</td></tr>'
+                '<tr><td style="font-family:Arial,sans-serif;font-size:13px;line-height:1.7;color:#5d6b63;padding-bottom:26px;">Kami menerima permintaan pemulihan untuk akun titikjiwa kamu. Tautan ini berlaku satu jam dan hanya bisa dipakai sekali.</td></tr>'
                 f'<tr><td style="padding-bottom:26px;"><a href="{reset_link}" style="background:#4a6b5d;color:#ffffff;text-decoration:none;font-family:Arial,sans-serif;font-size:13px;font-weight:bold;padding:13px 22px;display:inline-block;">Buat kata sandi baru</a></td></tr>'
                 '<tr><td style="font-family:Arial,sans-serif;font-size:11px;line-height:1.6;color:#87938a;">Jika kamu tidak meminta ini, abaikan email ini. Ruangmu tetap aman.</td></tr>'
                 '</table></td></tr></table>'
             )
             try:
-                await asyncio.to_thread(resend.Emails.send, {"from": f"Sintesis <{os.environ['SENDER_EMAIL']}>", "to": [user["email"]], "subject": "Atur ulang kata sandi Sintesis", "html": html})
+                await asyncio.to_thread(resend.Emails.send, {"from": f"titikjiwa <{os.environ['SENDER_EMAIL']}>", "to": [user["email"]], "subject": "Atur ulang kata sandi titikjiwa", "html": html})
             except Exception as exc:
                 logger.error("Gagal mengirim email pemulihan: %s", exc)
         else:
@@ -560,7 +560,7 @@ async def get_onboarding(user=Depends(current_user)):
     return profile
 
 AI_SYSTEM_BASE = (
-    "Kamu adalah Sinta, teman AI di aplikasi Sintesis, ruang pemulihan trauma. "
+    "Kamu adalah Sinta, teman AI di aplikasi titikjiwa, ruang pemulihan trauma. "
     "Jawab dalam Bahasa Indonesia yang hangat dan manusiawi, singkat (2-4 kalimat). "
     "Kamu bukan terapis dan tidak memberi diagnosis. Validasi perasaan, lalu tawarkan satu langkah kecil yang lembut. "
     "Jika ada tanda bahaya atau krisis, arahkan ke bantuan profesional atau layanan darurat dengan penuh kepedulian. "
@@ -610,7 +610,7 @@ async def ai_chat(payload: AiChatInput, user=Depends(current_user)):
         parts.append(f"Tentang pengguna ini dari wawancara pengenalan — yang membawanya ke sini: {profile['brings']}. Yang paling terasa akhir-akhir ini: {profile['feeling']}. Harapannya: {profile['hope']}.")
     if knowledge:
         parts.append("Pengetahuan relevan dari komunitas dan psikolog:\n" + "\n".join(f"- {item}" for item in knowledge))
-    chat = LlmChat(api_key=os.environ["EMERGENT_LLM_KEY"], session_id=f"sintesis-{user['id']}", system_message="\n\n".join(parts)).with_model("openai", "gpt-5.4")
+    chat = LlmChat(api_key=os.environ["EMERGENT_LLM_KEY"], session_id=f"titikjiwa-{user['id']}", system_message="\n\n".join(parts)).with_model("openai", "gpt-5.4")
 
     async def event_stream():
         reply_parts = []
@@ -647,7 +647,7 @@ async def weekly_insight(user=Depends(current_user)):
         f"{summary_lines}\n\n"
         "Tulis catatan lembut 3-4 kalimat dalam Bahasa Indonesia: rangkum pola perasaannya minggu ini, hargai usahanya menulis, dan tawarkan satu ajakan kecil untuk minggu depan. Jangan mendiagnosis."
     )
-    chat = LlmChat(api_key=os.environ["EMERGENT_LLM_KEY"], session_id=f"insight-{user['id']}-{week_key}", system_message="Kamu adalah Sinta, teman AI Sintesis yang hangat dan penuh perhatian.").with_model("openai", "gpt-5.4")
+    chat = LlmChat(api_key=os.environ["EMERGENT_LLM_KEY"], session_id=f"insight-{user['id']}-{week_key}", system_message="Kamu adalah Sinta, teman AI titikjiwa yang hangat dan penuh perhatian.").with_model("openai", "gpt-5.4")
     reply_parts = []
     async for event in chat.stream_message(UserMessage(text=prompt)):
         if isinstance(event, TextDelta):

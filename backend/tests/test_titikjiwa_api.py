@@ -22,7 +22,7 @@ def member(client):
 
 def test_health(client):
     r = client.get(f"{BASE_URL}/api/")
-    assert r.status_code == 200 and r.json()["service"] == "sintesis"
+    assert r.status_code == 200 and r.json()["service"] == "titikjiwa"
 
 
 def test_public_content(client):

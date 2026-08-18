@@ -1,4 +1,4 @@
-# Auth Testing Playbook — Sintesis
+# Auth Testing Playbook — titikjiwa
 
 ## Step 1: MongoDB Verification
 ```
@@ -12,7 +12,7 @@ Verify: bcrypt hash starts with `$2b$`, indexes exist on users.email (unique), l
 ## Step 2: API Testing (use external URL from frontend/.env)
 ```
 API_URL=$(grep REACT_APP_BACKEND_URL /app/frontend/.env | cut -d '=' -f2)
-curl -c cookies.txt -X POST $API_URL/api/auth/login -H "Content-Type: application/json" -d '{"email":"admin@sintesis.id","password":"SintesisAdmin123!"}'
+curl -c cookies.txt -X POST $API_URL/api/auth/login -H "Content-Type: application/json" -d '{"email":"admin@titikjiwa.id","password":"titikjiwaAdmin123!"}'
 cat cookies.txt
 curl -b cookies.txt $API_URL/api/auth/me
 curl -b cookies.txt -X POST $API_URL/api/auth/refresh

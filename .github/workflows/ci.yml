@@ -38,9 +38,9 @@ jobs:
         working-directory: backend
         env:
           MONGO_URL: mongodb://localhost:27017
-          DB_NAME: sintesis_ci
-          ADMIN_EMAIL: admin@sintesis.id
-          ADMIN_PASSWORD: SintesisAdmin123!
+          DB_NAME: titikjiwa_ci
+          ADMIN_EMAIL: admin@titikjiwa.id
+          ADMIN_PASSWORD: titikjiwaAdmin123!
           JWT_SECRET: ci-secret-key
           FRONTEND_URL: http://localhost:3000
         run: |
