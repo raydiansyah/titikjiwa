@@ -37,6 +37,7 @@ Aplikasi untuk membantu pengguna memproses dan menyembuhkan trauma: jurnal priba
 - 2026-08-18 (sesi 20): CI/CD — .github/workflows/ci.yml (validasi judul PR conventional commits, tes backend pytest dgn MongoDB service, build frontend yarn) + release.yml (semantic-release: bump versi frontend/package.json, CHANGELOG.md, tag + GitHub Release). .releaserc.json (pkgRoot frontend). Tests disegarkan: cookie-based, /react, role guards, 8/8 lulus. Cookie secure/samesite kini mengikuti skema FRONTEND_URL (https prod tetap Secure+None, http CI/local lax)
 
 ## Backlog
+- P1: Perbaiki konflik dependensi di repo titikjiwa agar commit b5fa1b3 bisa di-deploy: (a) backend — emergentintegrations==0.2.0 vs litellm pinned URL di requirements.txt, (b) frontend — peer conflict date-fns/react-day-picker pada npm ci (butuh --legacy-peer-deps atau lockfile diperbarui)
 - P1: Hubungkan remote GitHub & aktifkan branch protection main (wajib lolos CI sebelum merge)
 - P1: Verifikasi domain pengirim di Resend agar email bisa dikirim ke alamat mana pun
 - P2: Hapus/sunting jurnal lama
