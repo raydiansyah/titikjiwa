@@ -1,3 +1,10 @@
+## [1.0.5](https://github.com/raydiansyah/titikjiwa/compare/v1.0.4...v1.0.5) (2026-08-18)
+
+
+### Bug Fixes
+
+* **ci:** tambah ajv@8 sebagai direct dependency agar build konsisten di runner ([9d35f09](https://github.com/raydiansyah/titikjiwa/commit/9d35f09df6fddbb516aaee1ec5b0a162b7712edb))
+
 ## [1.0.4](https://github.com/raydiansyah/titikjiwa/compare/v1.0.3...v1.0.4) (2026-08-18)
 
 
