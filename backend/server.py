@@ -20,7 +20,6 @@ import re
 import jwt
 import bcrypt
 import resend
-from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone
 from datetime import datetime, timezone, timedelta
 
 
@@ -610,6 +609,7 @@ async def ai_chat(payload: AiChatInput, user=Depends(current_user)):
         parts.append(f"Tentang pengguna ini dari wawancara pengenalan — yang membawanya ke sini: {profile['brings']}. Yang paling terasa akhir-akhir ini: {profile['feeling']}. Harapannya: {profile['hope']}.")
     if knowledge:
         parts.append("Pengetahuan relevan dari komunitas dan psikolog:\n" + "\n".join(f"- {item}" for item in knowledge))
+    from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone
     chat = LlmChat(api_key=os.environ["EMERGENT_LLM_KEY"], session_id=f"titikjiwa-{user['id']}", system_message="\n\n".join(parts)).with_model("openai", "gpt-5.4")
 
     async def event_stream():
@@ -647,6 +647,7 @@ async def weekly_insight(user=Depends(current_user)):
         f"{summary_lines}\n\n"
         "Tulis catatan lembut 3-4 kalimat dalam Bahasa Indonesia: rangkum pola perasaannya minggu ini, hargai usahanya menulis, dan tawarkan satu ajakan kecil untuk minggu depan. Jangan mendiagnosis."
     )
+    from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone
     chat = LlmChat(api_key=os.environ["EMERGENT_LLM_KEY"], session_id=f"insight-{user['id']}-{week_key}", system_message="Kamu adalah Sinta, teman AI titikjiwa yang hangat dan penuh perhatian.").with_model("openai", "gpt-5.4")
     reply_parts = []
     async for event in chat.stream_message(UserMessage(text=prompt)):
@@ -674,6 +675,7 @@ async def ai_suggestions(user=Depends(current_user)):
         f"- Harapannya: {profile['hope']}\n\n"
         "Buat 3 saran kalimat pembuka yang bisa pengguna kirim ke teman AI. Syarat: orang pertama, lembut, maksimal 10 kata per kalimat, Bahasa Indonesia. Tulis hanya 3 baris tanpa nomor, tanpa tanda bintang."
     )
+    from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone
     chat = LlmChat(api_key=os.environ["EMERGENT_LLM_KEY"], session_id=f"suggest-{user['id']}", system_message="Kamu membantu merumuskan kalimat pembuka yang personal dan lembut.").with_model("openai", "gpt-5.4")
     reply_parts = []
     async for event in chat.stream_message(UserMessage(text=prompt)):
