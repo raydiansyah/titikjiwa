@@ -126,11 +126,13 @@ async def seed_content():
     await db.users.create_index("email", unique=True)
     await db.login_attempts.create_index("identifier")
     await db.password_reset_tokens.create_index("expires_at", expireAfterSeconds=0)
-    admin = await db.users.find_one({"email": os.environ["ADMIN_EMAIL"]}, {"_id": 0})
-    if admin is None:
-        await db.users.insert_one({"id": str(uuid.uuid4()), "email": os.environ["ADMIN_EMAIL"], "password_hash": hash_password(os.environ["ADMIN_PASSWORD"]), "alias": "Tim titikjiwa", "role": "admin", "created_at": now_iso()})
-    elif not verify_password(os.environ["ADMIN_PASSWORD"], admin["password_hash"]):
-        await db.users.update_one({"email": os.environ["ADMIN_EMAIL"]}, {"$set": {"password_hash": hash_password(os.environ["ADMIN_PASSWORD"])}})
+    owner_email = os.environ.get("OWNER_EMAIL", os.environ.get("ADMIN_EMAIL", "raydiansyah@gmail.com")).lower()
+    owner_password = os.environ.get("OWNER_PASSWORD") or os.environ["ADMIN_PASSWORD"]
+    owner = await db.users.find_one({"email": owner_email}, {"_id": 0})
+    if owner is None:
+        await db.users.insert_one({"id": str(uuid.uuid4()), "email": owner_email, "password_hash": hash_password(owner_password), "alias": "Tim titikjiwa", "role": "admin", "created_at": now_iso()})
+    elif not verify_password(owner_password, owner["password_hash"]):
+        await db.users.update_one({"email": owner_email}, {"$set": {"password_hash": hash_password(owner_password)}})
     psy_email = os.environ.get("PSY_EMAIL")
     if psy_email and await db.users.find_one({"email": psy_email}, {"_id": 0}) is None:
         await db.users.insert_one({"id": str(uuid.uuid4()), "email": psy_email, "password_hash": hash_password(os.environ["PSY_PASSWORD"]), "alias": "dr. Maya Pradipta", "role": "psikolog", "psychologist_id": "psy-maya", "created_at": now_iso()})
@@ -699,6 +701,14 @@ async def ai_history(user=Depends(current_user)):
 class ConsultationStatus(BaseModel):
     status: str
 
+class UserUpdate(BaseModel):
+    role: Optional[str] = None
+    alias: Optional[str] = None
+    disabled: Optional[bool] = None
+
+class UserPasswordReset(BaseModel):
+    password: str = Field(min_length=8)
+
 @api_router.get("/consultations")
 async def list_consultations(user=Depends(require_roles("admin", "psikolog"))):
     query = {} if user["role"] == "admin" else {"psychologist_id": user.get("psychologist_id", "-")}
@@ -720,6 +730,63 @@ async def update_consultation_status(consultation_id: str, payload: Consultation
 @api_router.get("/admin/stats")
 async def admin_stats(admin=Depends(require_admin)):
     return {"members": await db.users.count_documents({"role": "member"}), "posts": await db.posts.count_documents({}), "reports_open": await db.reports.count_documents({}), "articles": await db.articles.count_documents({}), "consultations": await db.consultations.count_documents({}), "crisis_open": await db.crisis_alerts.count_documents({"acknowledged": False})}
+
+@api_router.get("/admin/users")
+async def admin_users(admin=Depends(require_admin)):
+    return await db.users.find({}, {"_id": 0, "password_hash": 0}).sort("created_at", -1).to_list(500)
+
+@api_router.patch("/admin/users/{user_id}")
+async def admin_update_user(user_id: str, payload: UserUpdate, admin=Depends(require_admin)):
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Pengguna tidak ditemukan.")
+    if payload.role and payload.role not in ("member", "psikolog", "admin"):
+        raise HTTPException(status_code=400, detail="Peran tidak dikenal.")
+    if user_id == admin["id"] and (payload.disabled is True or (payload.role and payload.role != "admin")):
+        raise HTTPException(status_code=400, detail="Tidak bisa menonaktifkan atau menurunkan peran akun sendiri.")
+    update = {}
+    if payload.role is not None:
+        update["role"] = payload.role
+    if payload.alias is not None:
+        update["alias"] = payload.alias.strip()
+    if payload.disabled is not None:
+        update["disabled"] = payload.disabled
+    if not update:
+        raise HTTPException(status_code=400, detail="Tidak ada perubahan.")
+    await db.users.update_one({"id": user_id}, {"$set": update})
+    return {"ok": True}
+
+@api_router.post("/admin/users/{user_id}/reset-password")
+async def admin_reset_password(user_id: str, payload: UserPasswordReset, admin=Depends(require_admin)):
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Pengguna tidak ditemukan.")
+    await db.users.update_one({"id": user_id}, {"$set": {"password_hash": hash_password(payload.password)}})
+    await db.login_attempts.delete_many({"identifier": {"$regex": user["email"]}})
+    return {"ok": True, "message": "Kata sandi pengguna berhasil diatur ulang."}
+
+@api_router.delete("/admin/users/{user_id}")
+async def admin_delete_user(user_id: str, admin=Depends(require_admin)):
+    if user_id == admin["id"]:
+        raise HTTPException(status_code=400, detail="Tidak bisa menghapus akun sendiri.")
+    user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Pengguna tidak ditemukan.")
+    await db.users.delete_one({"id": user_id})
+    await db.profiles.delete_many({"user_id": user_id})
+    await db.journals.delete_many({"user_id": user_id})
+    await db.notifications.delete_many({"user_id": user_id})
+    await db.ai_interactions.delete_many({"user_id": user_id})
+    await db.aura_history.delete_many({"user_id": user_id})
+    await db.weekly_insights.delete_many({"user_id": user_id})
+    await db.crisis_alerts.delete_many({"user_id": user_id})
+    await db.reports.delete_many({"user_id": user_id})
+    await db.consultations.delete_many({"user_id": user_id})
+    await db.password_reset_tokens.delete_many({"user_id": user_id})
+    if user.get("role") == "psikolog" and user.get("psychologist_id"):
+        await db.psychologists.delete_many({"id": user["psychologist_id"]})
+        await db.consultations.delete_many({"psychologist_id": user["psychologist_id"]})
+    return {"ok": True, "message": "Pengguna beserta datanya telah dihapus."}
 
 @api_router.get("/articles")
 async def articles():
