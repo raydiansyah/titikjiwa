@@ -32,15 +32,14 @@ jobs:
           cache-dependency-path: backend/requirements.txt
       - name: Instal dependensi
         run: |
-          pip install -r backend/requirements.txt
-          pip install pytest requests
+          pip install -r backend/requirements-ci.txt
       - name: Nyalakan API uji
         working-directory: backend
         env:
           MONGO_URL: mongodb://localhost:27017
-          DB_NAME: sintesis_ci
-          ADMIN_EMAIL: admin@sintesis.id
-          ADMIN_PASSWORD: SintesisAdmin123!
+          DB_NAME: titikjiwa_ci
+          ADMIN_EMAIL: admin@titikjiwa.id
+          ADMIN_PASSWORD: titikjiwaAdmin123!
           JWT_SECRET: ci-secret-key
           FRONTEND_URL: http://localhost:3000
         run: |
@@ -59,14 +58,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: yarn
-          cache-dependency-path: frontend/yarn.lock
       - name: Instal dependensi
         working-directory: frontend
-        run: yarn install --frozen-lockfile
+        run: |
+          npm install -g npm@9.2.0
+          npm install --legacy-peer-deps --no-package-lock --no-audit --no-fund
       - name: Build produksi
         working-directory: frontend
         env:
           REACT_APP_BACKEND_URL: http://localhost:8001
           CI: "false"
-        run: yarn build
+        run: npm run build

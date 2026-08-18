@@ -1,5 +1,5 @@
 {
-  "app_name": "Sintesis - Sanctuaries of Healing & Growth",
+  "app_name": "titikjiwa - Sanctuaries of Healing & Growth",
   "archetype": "ORGANIC & EARTHY",
   "color_system": {
     "primary": "#4A6B5D",
@@ -28,7 +28,7 @@
   "components_and_features": [
     {
       "name": "Interactive Landing Page",
-      "features": ["Hero with gentle box-breathing timer", "Engagement CTAs", "Why choose Sintesis", "Target audience segments"]
+      "features": ["Hero with gentle box-breathing timer", "Engagement CTAs", "Why choose titikjiwa", "Target audience segments"]
     },
     {
       "name": "Private Journal",
