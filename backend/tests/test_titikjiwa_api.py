@@ -76,7 +76,7 @@ def test_unauthenticated_protection():
 
 
 def test_admin_manage_users(client):
-    admin_email = os.environ.get("ADMIN_EMAIL", "admin@ci.test")
+    admin_email = os.environ.get("ADMIN_EMAIL", "admin@titikjiwa.id")
     admin_password = os.environ.get("ADMIN_PASSWORD", "titikjiwaAdmin123!")
     s = requests.Session()
     r = s.post(f"{BASE_URL}/api/auth/login", json={"email": admin_email, "password": admin_password})
