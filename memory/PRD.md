@@ -34,8 +34,10 @@ Aplikasi untuk membantu pengguna memproses dan menyembuhkan trauma: jurnal priba
 - 2026-08-14 (sesi 17): Titik aura (conic-gradient) menggantikan avatar polos di sidebar dengan tooltip nama aura. Fitur SOS darurat — tombol melayang berdenyut di semua halaman (publik + workspace), modal berisi panggilan cepat tel:112/110/119 dan direktori layanan: SAPA 129 (KemenPPPA), 1500-771 (Kemensos), 1500-567 (Halo Kemenkes), 1500-454 (konsultasi jiwa)
 - 2026-08-14 (sesi 18): SOS otomatis — pola kata kunci krisis (CRISIS_PATTERN regex) di pesan Teman AI memicu event "sintesis:open-sos" yang membuka panel SOS proaktif (tanpa false positive pada pesan biasa). Kontak darurat pribadi — POST/GET /api/emergency-contact (disimpan di profiles.emergency_contact), panel SOS menampilkan kartu panggil cepat atau formulir simpan nama+telepon
 - 2026-08-18 (sesi 19): Eskalasi krisis — deteksi ganda di server (is_crisis di /ai/chat) mencatat crisis_alerts dengan alias+cuplikan; dasbor admin menampilkan kartu sinyal krisis (polling 30 dtk, tombol "Sudah disapa", stat crisis_open di /admin/stats). Rencana Aman — POST/GET /api/safety-plan (tanda bahaya/strategi/penolong di profiles.safety_plan), tampil & bisa diubah dari panel SOS. Fix: wawancara hanya untuk role member; require_roles dipindah setelah current_user (NameError)
+- 2026-08-18 (sesi 20): CI/CD — .github/workflows/ci.yml (validasi judul PR conventional commits, tes backend pytest dgn MongoDB service, build frontend yarn) + release.yml (semantic-release: bump versi frontend/package.json, CHANGELOG.md, tag + GitHub Release). .releaserc.json (pkgRoot frontend). Tests disegarkan: cookie-based, /react, role guards, 8/8 lulus. Cookie secure/samesite kini mengikuti skema FRONTEND_URL (https prod tetap Secure+None, http CI/local lax)
 
 ## Backlog
+- P1: Hubungkan remote GitHub & aktifkan branch protection main (wajib lolos CI sebelum merge)
 - P1: Verifikasi domain pengirim di Resend agar email bisa dikirim ke alamat mana pun
 - P2: Hapus/sunting jurnal lama
 - P2: Email konfirmasi konsultasi (Resend — pakai fungsi yang sama)
