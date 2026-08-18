@@ -1,3 +1,10 @@
+## [1.0.4](https://github.com/raydiansyah/titikjiwa/compare/v1.0.3...v1.0.4) (2026-08-18)
+
+
+### Bug Fixes
+
+* **ci:** ganti npm ci ke npm install --legacy-peer-deps untuk resolve tree ajv ([0dd0127](https://github.com/raydiansyah/titikjiwa/commit/0dd0127ed64656847151660b07734f97a7212329))
+
 ## [1.0.3](https://github.com/raydiansyah/titikjiwa/compare/v1.0.2...v1.0.3) (2026-08-18)
 
 
