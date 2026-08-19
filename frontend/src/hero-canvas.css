@@ -129,3 +129,52 @@
 .dark .hero-bg:after{background:rgba(201,138,102,.12);}
 .dark .hand-touchpoint{background:radial-gradient(ellipse,rgba(201,138,102,.22) 0%,transparent 68%);}
 .dark .hero-ritual{background:rgba(26,31,28,.82);border-color:rgba(74,107,93,.28);}
+
+/* ---- Meditation figure ---- */
+.hero-meditation{
+  position:absolute;
+  bottom:8%;
+  right:8%;
+  width:min(340px,38vw);
+  pointer-events:none;
+  z-index:2;
+}
+.hero-meditation svg{
+  width:100%;
+  height:auto;
+  --meditation-skin:#c8a882;
+  --meditation-robe:#6b8f71;
+  --meditation-aura:#7a9e82;
+  filter:drop-shadow(0 8px 32px rgba(74,107,93,.22));
+}
+.dark .hero-meditation svg{
+  --meditation-skin:#b8946c;
+  --meditation-robe:#4a6b5d;
+  --meditation-aura:#5a8060;
+  filter:drop-shadow(0 8px 32px rgba(74,107,93,.35));
+}
+@media(max-width:680px){
+  .hero-meditation{width:min(200px,52vw);bottom:5%;right:4%;}
+}
+
+/* ---- Glow blobs ---- */
+.hero-glow{
+  position:absolute;
+  border-radius:50%;
+  pointer-events:none;
+  z-index:1;
+  filter:blur(72px);
+  opacity:0.55;
+}
+.hero-glow-teal{
+  width:480px;height:480px;
+  background:radial-gradient(circle,rgba(74,107,93,.45) 0%,transparent 70%);
+  top:-10%;right:5%;
+}
+.hero-glow-amber{
+  width:360px;height:360px;
+  background:radial-gradient(circle,rgba(201,138,102,.35) 0%,transparent 70%);
+  bottom:10%;right:20%;
+}
+.dark .hero-glow-teal{opacity:0.40;}
+.dark .hero-glow-amber{opacity:0.30;}

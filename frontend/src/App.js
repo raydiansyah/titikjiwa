@@ -64,51 +64,43 @@ function LandingPage() {
   useEffect(() => { const lenis = new Lenis({ duration: 1.15, smoothWheel: true }); lenisRef.current = lenis; let raf; const loop = (time) => { lenis.raf(time); raf = requestAnimationFrame(loop); }; raf = requestAnimationFrame(loop); return () => { cancelAnimationFrame(raf); lenis.destroy(); lenisRef.current = null; }; }, []);
   const scrollTo = (id) => { const el = document.getElementById(id); if (!el) return; if (lenisRef.current) lenisRef.current.scrollTo(el, { offset: -20 }); else el.scrollIntoView({ behavior: "smooth" }); };
   const { scrollYProgress } = useScroll({ target: pinRef, offset: ["start start", "end start"] });
-  const [handVec, setHandVec] = useState({ tlX: 220, tlY: 110, brX: -318, brY: -66 });
-  useEffect(() => {
-    const calc = () => {
-      const hero = document.querySelector(".hero-canvas");
-      if (!hero) return;
-      const hr = hero.getBoundingClientRect();
-      const W = hr.width;
-      const H = hr.height;
-      const w = Math.min(0.58 * W, 660);
-      setHandVec({
-        tlX: 0.68 * W - 0.781 * w,
-        tlY: 0.6 * H - 0.449 * w,
-        brX: -0.64 * W + 0.565 * w,
-        brY: -0.7 * H + 0.624 * w,
-      });
-    };
-    calc();
-    window.addEventListener("resize", calc);
-    return () => window.removeEventListener("resize", calc);
-  }, []);
-  const handsReach = useTransform(scrollYProgress, [0, 0.42], [0, 1]);
-  const tlX = useTransform(handsReach, (v) => v * handVec.tlX);
-  const tlY = useTransform(handsReach, (v) => v * handVec.tlY);
-  const brX = useTransform(handsReach, (v) => v * handVec.brX);
-  const brY = useTransform(handsReach, (v) => v * handVec.brY);
+  const meditationFloat = useTransform(scrollYProgress, [0, 0.5], [0, -30]);
   const rippleOpacity = useTransform(scrollYProgress, [0.38, 0.5], [0, 1]);
   const rippleGrow = useTransform(scrollYProgress, [0.42, 0.88], [0, 1]);
   const heroOpacity = useTransform(scrollYProgress, [0.58, 0.8], [1, 0]);
   const heroY = useTransform(scrollYProgress, [0.58, 0.85], [0, -90]);
   const heroScale = useTransform(scrollYProgress, [0.58, 0.85], [1, 0.94]);
-  const [reach, setReach] = useState(0);
-  const reachX = useMotionValue(0); const reachY = useMotionValue(0);
-  const onMove = (e) => { const r = e.currentTarget.getBoundingClientRect(); const cx = r.left + r.width / 2; const cy = r.top + r.height / 2; const t = Math.max(0, 1 - Math.hypot(e.clientX - cx, e.clientY - cy) / (Math.min(r.width, r.height) * 0.55)); setReach(t); };
-  useEffect(() => { const a = animate(reachX, reach * 52, { type: "spring", stiffness: 80, damping: 15 }); const b = animate(reachY, reach * 40, { type: "spring", stiffness: 80, damping: 15 }); return () => { a.stop(); b.stop(); }; }, [reach, reachX, reachY]);
-  const tlFinalX = useTransform([tlX, reachX], (latest) => latest[0] + latest[1]);
-  const tlFinalY = useTransform([tlY, reachY], (latest) => latest[0] + latest[1]);
-  const brFinalX = useTransform([brX, reachX], (latest) => latest[0] - latest[1]);
-  const brFinalY = useTransform([brY, reachY], (latest) => latest[0] - latest[1]);
-  const handOpacity = useTransform(scrollYProgress, [0.58, 0.82], [1, 0]);
   return <div className="public-page"><EmergencySOS /><PublicHeader /><main>
     <div className="hero-pin" ref={pinRef}>
-      <section className="hero-section hero-canvas" onMouseMove={onMove} onMouseLeave={() => setReach(0)} data-testid="hero-section">
+      <section className="hero-section hero-canvas" data-testid="hero-section">
         <div className="hero-bg" aria-hidden="true" />
-        <motion.div className="hand hand-top" style={{ x: tlFinalX, y: tlFinalY, opacity: handOpacity }} aria-hidden="true"><img src={`${process.env.PUBLIC_URL}/hands/hand-top-left.png`} alt="" draggable={false} /></motion.div>
-        <motion.div className="hand hand-bottom" style={{ x: brFinalX, y: brFinalY, opacity: handOpacity }} aria-hidden="true"><img src={`${process.env.PUBLIC_URL}/hands/hand-bottom-right.png`} alt="" draggable={false} /></motion.div>
+        {/* Glow blobs */}
+        <div className="hero-glow hero-glow-teal" aria-hidden="true" />
+        <div className="hero-glow hero-glow-amber" aria-hidden="true" />
+        {/* Meditation figure SVG */}
+        <motion.div className="hero-meditation" style={{ y: meditationFloat }} aria-hidden="true">
+          <svg viewBox="0 0 240 280" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            {/* Head */}
+            <circle cx="120" cy="48" r="26" fill="var(--meditation-skin, #c8a882)" opacity="0.92"/>
+            {/* Body torso */}
+            <path d="M90 80 Q80 120 76 160 Q100 172 120 172 Q140 172 164 160 Q160 120 150 80 Q136 72 120 70 Q104 72 90 80Z" fill="var(--meditation-robe, #6b8f71)" opacity="0.88"/>
+            {/* Left arm */}
+            <path d="M90 88 Q62 108 52 138 Q64 148 80 144 Q88 120 96 100Z" fill="var(--meditation-robe, #6b8f71)" opacity="0.85"/>
+            {/* Right arm */}
+            <path d="M150 88 Q178 108 188 138 Q176 148 160 144 Q152 120 144 100Z" fill="var(--meditation-robe, #6b8f71)" opacity="0.85"/>
+            {/* Hands meeting at lap */}
+            <ellipse cx="120" cy="158" rx="28" ry="14" fill="var(--meditation-skin, #c8a882)" opacity="0.80"/>
+            {/* Crossed legs base */}
+            <path d="M76 160 Q60 185 52 210 Q80 220 120 218 Q160 220 188 210 Q180 185 164 160 Q140 172 120 172 Q100 172 76 160Z" fill="var(--meditation-robe, #6b8f71)" opacity="0.82"/>
+            {/* Left foot */}
+            <ellipse cx="80" cy="212" rx="20" ry="10" fill="var(--meditation-skin, #c8a882)" opacity="0.75" transform="rotate(-8 80 212)"/>
+            {/* Right foot */}
+            <ellipse cx="160" cy="212" rx="20" ry="10" fill="var(--meditation-skin, #c8a882)" opacity="0.75" transform="rotate(8 160 212)"/>
+            {/* Subtle aura ring */}
+            <circle cx="120" cy="140" r="108" stroke="var(--meditation-aura, #7a9e82)" strokeWidth="1.2" strokeDasharray="4 6" opacity="0.25"/>
+            <circle cx="120" cy="140" r="90" stroke="var(--meditation-aura, #7a9e82)" strokeWidth="0.8" opacity="0.15"/>
+          </svg>
+        </motion.div>
         <motion.svg className="hero-ripple" viewBox="0 0 100 120" preserveAspectRatio="none" style={{ opacity: rippleOpacity }} aria-hidden="true"><defs><linearGradient id="heroRippleGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#4a6b5d" stopOpacity="0.85" /><stop offset="0.55" stopColor="#7a8f80" stopOpacity="0.4" /><stop offset="1" stopColor="#c98a66" stopOpacity="0" /></linearGradient></defs><motion.path d="M50,52 C46,62 54,68 50,78 C46,86 54,92 50,100 C48,110 52,116 50,120" fill="none" stroke="url(#heroRippleGrad)" strokeWidth="2.6" strokeLinecap="round" style={{ pathLength: rippleGrow }} /></motion.svg>
         <motion.div className="hand-touchpoint" style={{ opacity: rippleOpacity, scale: rippleGrow }} aria-hidden="true" />
         <motion.div className="hero-center" style={{ opacity: heroOpacity, y: heroY, scale: heroScale }}>
