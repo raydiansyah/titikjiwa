@@ -3,4 +3,5 @@
 
 export const HOME = {
 	emergentLink: 'home-emergent-link',
+	themeToggle: 'theme-toggle-button',
 };

@@ -110,3 +110,22 @@
   .hero-canvas{position:relative;height:auto;min-height:100svh;}
   .hero-ritual{position:relative;bottom:auto;left:auto;transform:none;margin:38px auto 0;}
 }
+
+.dark .hero-canvas{
+  background:
+    radial-gradient(1200px 640px at 50% -10%,#1a1f1c 0%,rgba(26,31,28,0) 62%),
+    radial-gradient(940px 520px at 88% 12%,#1c2018 0%,rgba(28,32,24,0) 56%),
+    radial-gradient(820px 540px at 8% 84%,#181d1b 0%,rgba(24,29,27,0) 56%),
+    linear-gradient(160deg,#1b2019 0%,#161b14 100%);
+}
+.dark .hero-bg{
+  background:
+    radial-gradient(430px 270px at 20% 16%,rgba(201,138,102,.08),transparent 70%),
+    radial-gradient(500px 320px at 80% 74%,rgba(74,107,93,.18),transparent 70%),
+    radial-gradient(380px 260px at 62% 18%,rgba(255,255,255,.04),transparent 72%),
+    radial-gradient(300px 220px at 30% 86%,rgba(201,138,102,.06),transparent 70%);
+}
+.dark .hero-bg:before{background:rgba(74,107,93,.22);}
+.dark .hero-bg:after{background:rgba(201,138,102,.12);}
+.dark .hand-touchpoint{background:radial-gradient(ellipse,rgba(201,138,102,.22) 0%,transparent 68%);}
+.dark .hero-ritual{background:rgba(26,31,28,.82);border-color:rgba(74,107,93,.28);}
