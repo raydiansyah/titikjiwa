@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/raydiansyah/titikjiwa/compare/v1.3.1...v1.4.0) (2026-08-19)
+
+
+### Features
+
+* **hero:** ganti hand illustration → SVG figur meditasi + glow blobs dark/light mode ([f8f8baa](https://github.com/raydiansyah/titikjiwa/commit/f8f8baa609ae7414f1e76b5fe0b2c30da1c259e4))
+
 ## [1.3.1](https://github.com/raydiansyah/titikjiwa/compare/v1.3.0...v1.3.1) (2026-08-19)
 
 
