@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/raydiansyah/titikjiwa/compare/v1.3.0...v1.3.1) (2026-08-19)
+
+
+### Bug Fixes
+
+* **frontend:** build script baca version dari package.json via node -e ([01709d9](https://github.com/raydiansyah/titikjiwa/commit/01709d954e812d6f7e2f98bc7967366e6bca2cbb))
+
 # [1.3.0](https://github.com/raydiansyah/titikjiwa/compare/v1.2.0...v1.3.0) (2026-08-19)
 
 
