@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/raydiansyah/titikjiwa/compare/v1.2.0...v1.3.0) (2026-08-19)
+
+
+### Features
+
+* **ui:** dark mode, theme toggle, unified footer, hero dark canvas ([a72c978](https://github.com/raydiansyah/titikjiwa/commit/a72c9785c746e9dd65b53491b0188e0bb2c1057b))
+
 # [1.2.0](https://github.com/raydiansyah/titikjiwa/compare/v1.1.0...v1.2.0) (2026-08-18)
 
 
