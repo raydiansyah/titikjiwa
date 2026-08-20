@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/raydiansyah/titikjiwa/compare/v1.4.0...v1.5.0) (2026-08-20)
+
+
+### Features
+
+* **landing:** redesign hero section with animated meditation artwork, thought mandala, aura rings and full dark/light theme support ([f12aceb](https://github.com/raydiansyah/titikjiwa/commit/f12aceb29b22fd03b52070c534af6a50d3895e14))
+
 # [1.4.0](https://github.com/raydiansyah/titikjiwa/compare/v1.3.1...v1.4.0) (2026-08-19)
 
 
