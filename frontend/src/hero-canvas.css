@@ -1,180 +1,524 @@
 /* ============================================================
-   Hero Canvas — Superdesign-style centered hero for titikjiwa
-   Loaded AFTER App.css so overrides win.
+   Hero Canvas — Titikjiwa Spiritual Calm Meditation Hero
+   Concentric Glowing Aura Rings · Sacred Geometry Mandala ·
+   Floating Thought Badges · Dark & Light Mode Theme Harmony
    ============================================================ */
 
-/* overflow:clip keeps horizontal-scroll protection while letting
-   position:sticky work (overflow:hidden on an ancestor kills sticky). */
-.public-page{overflow:clip;}
+.public-page {
+  overflow-x: clip;
+}
 
-/* ---- Phase container: pin hero while scrolling ---- */
-.hero-pin{position:relative;height:260vh;}
-
-/* ---- Full-screen centered canvas ---- */
-.hero-canvas{
-  position:sticky;top:0;height:100vh;height:100svh;min-height:680px;
-  display:flex;align-items:center;justify-content:center;
-  overflow:hidden;
+/* ---- Full-screen Hero Section ---- */
+.hero-section.hero-canvas {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  padding: 0 0 40px;
   background:
-    radial-gradient(1200px 640px at 50% -10%,#f3efe8 0%,rgba(243,239,232,0) 62%),
-    radial-gradient(940px 520px at 88% 12%,#eae3d6 0%,rgba(234,227,214,0) 56%),
-    radial-gradient(820px 540px at 8% 84%,#f0eae0 0%,rgba(240,234,224,0) 56%),
-    linear-gradient(160deg,#efece6 0%,#e7e3d8 100%);
+    radial-gradient(1100px 700px at 50% 48%, rgba(217, 160, 91, 0.12) 0%, transparent 68%),
+    radial-gradient(900px 550px at 50% -10%, rgba(235, 200, 145, 0.14) 0%, transparent 60%),
+    linear-gradient(175deg, #faf7f2 0%, #f4efe6 45%, #ece4d6 100%);
+  transition: background 0.4s ease;
 }
 
-/* soft watercolor texture blobs */
-.hero-bg{position:absolute;inset:0;z-index:0;pointer-events:none;
+.dark .hero-section.hero-canvas {
   background:
-    radial-gradient(430px 270px at 20% 16%,rgba(201,138,102,.10),transparent 70%),
-    radial-gradient(500px 320px at 80% 74%,rgba(74,107,93,.13),transparent 70%),
-    radial-gradient(380px 260px at 62% 18%,rgba(255,255,255,.38),transparent 72%),
-    radial-gradient(300px 220px at 30% 86%,rgba(201,138,102,.08),transparent 70%);
-}
-.hero-bg:before,.hero-bg:after{content:"";position:absolute;border-radius:50%;filter:blur(60px);opacity:.5;}
-.hero-bg:before{width:340px;height:340px;top:14%;left:12%;background:rgba(196,181,161,.28);}
-.hero-bg:after{width:420px;height:420px;bottom:6%;right:10%;background:rgba(74,107,93,.16);}
-
-/* ---- Hands ---- */
-.hand{position:absolute;z-index:1;pointer-events:none;will-change:transform;}
-.hand-top{top:-16%;left:-18%;width:min(58vw,660px);transform-origin:top left;}
-.hand-bottom{bottom:-14%;right:-14%;width:min(58vw,660px);transform-origin:bottom right;}
-.hand img{width:100%;height:auto;display:block;user-select:none;-webkit-user-drag:none;
-  animation:handFloat 6.5s ease-in-out infinite;}
-.hand-bottom img{animation-delay:-3.2s;}
-@keyframes handFloat{
-  0%,100%{transform:translateY(0) rotate(0deg);}
-  50%{transform:translateY(-16px) rotate(1.2deg);}
+    radial-gradient(1100px 750px at 50% 46%, rgba(229, 176, 109, 0.14) 0%, transparent 70%),
+    radial-gradient(900px 500px at 50% -10%, rgba(74, 107, 93, 0.22) 0%, transparent 65%),
+    linear-gradient(175deg, #111a15 0%, #15221b 45%, #0e1612 100%);
 }
 
-/* ---- Touch glow where the fingertips meet ---- */
-.hand-touchpoint{position:absolute;left:50%;top:44%;z-index:1;width:220px;height:220px;margin:-110px 0 0 -110px;border-radius:50%;pointer-events:none;
-  background:radial-gradient(circle,rgba(74,107,93,.55) 0%,rgba(74,107,93,.18) 38%,rgba(201,138,102,.08) 60%,transparent 74%);}
-
-/* ---- Ripple flow path ---- */
-.hero-ripple{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none;}
-
-/* ---- Centered copy ---- */
-.hero-center{position:relative;z-index:2;width:min(880px,calc(100% - 48px));text-align:center;padding-top:24px;}
-.hero-center h1{font:500 clamp(46px,6.4vw,86px)/1.05 var(--serif);letter-spacing:-.045em;margin:20px 0 22px;color:var(--ink);text-wrap:balance;}
-.hero-lede{max-width:560px;margin:0 auto;color:#5d6b63;font-size:15px;line-height:1.8;}
-.hero-actions{display:flex;align-items:center;justify-content:center;gap:24px;margin-top:30px;flex-wrap:wrap;}
-.hero-proof{display:flex;align-items:center;justify-content:center;gap:13px;margin-top:44px;color:#708078;font-size:11px;line-height:1.5;}
-.hero-proof strong{color:var(--sage);}
-
-/* ---- Floating frosted-glass ritual card ---- */
-.hero-ritual{position:absolute;bottom:58px;left:50%;transform:translateX(-50%);z-index:3;}
-.hero-ritual .breathing-card{
-  width:302px;min-height:0;padding:16px 20px;
-  display:grid;grid-template-columns:64px 1fr;gap:12px;text-align:left;align-items:center;
-  background:rgba(255,255,255,.5);
-  backdrop-filter:blur(18px) saturate(1.25);-webkit-backdrop-filter:blur(18px) saturate(1.25);
-  border:1px solid rgba(255,255,255,.72);border-radius:26px;
-  box-shadow:0 18px 50px rgba(56,71,62,.14);
-}
-.hero-ritual .breathing-orbit{width:62px;height:62px;grid-row:span 2;}
-.hero-ritual .breathing-orbit:before{inset:7px;}
-.hero-ritual .breathing-orbit:after{inset:15px;}
-.hero-ritual .breathing-core{width:30px;height:30px;}
-.hero-ritual .breathing-core svg{width:14px;}
-.hero-ritual .breathing-copy strong{font-size:17px;letter-spacing:-.01em;}
-.hero-ritual .breathing-copy span:last-child{font-size:10px;}
-.hero-ritual .breathing-toggle{grid-column:2;justify-self:start;margin-top:-4px;}
-
-/* ---- Mobile: keep text readable, tone animations down ---- */
-@media (max-width:768px){
-  .hero-pin{height:auto;}
-  .hero-canvas{position:relative;height:auto;min-height:100svh;display:block;padding:108px 0 44px;}
-  .hero-center{margin:0 auto;}
-  .hero-center h1{font-size:clamp(38px,10vw,52px);}
-  .hero-lede{font-size:13px;}
-  .hero-actions{flex-direction:column;gap:16px;}
-  .hand{width:34vw;max-width:200px;opacity:.55;z-index:0;}
-  .hand-top{top:-2%;left:-6%;}
-  .hand-bottom{bottom:-2%;right:-6%;}
-  .hand img{animation:none;}
-  .hero-ripple{display:none;}
-  .hero-ritual{position:relative;bottom:auto;left:auto;transform:none;margin:38px auto 0;width:min(320px,calc(100% - 40px));}
-}
-
-/* ---- Short viewports: keep the ritual card inside the screen ---- */
-@media (max-height:720px){
-  .hero-ritual{bottom:120px;}
-  .hero-center{padding-top:0;}
-  .hero-center h1{margin:14px 0 16px;}
-}
-
-/* ---- Accessibility: respect reduced motion ---- */
-@media (prefers-reduced-motion:reduce){
-  .hand img{animation:none;}
-  .hero-pin{height:auto;}
-  .hero-canvas{position:relative;height:auto;min-height:100svh;}
-  .hero-ritual{position:relative;bottom:auto;left:auto;transform:none;margin:38px auto 0;}
-}
-
-.dark .hero-canvas{
+/* Ambient Background Grain & Glow Blobs */
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
   background:
-    radial-gradient(1200px 640px at 50% -10%,#1a1f1c 0%,rgba(26,31,28,0) 62%),
-    radial-gradient(940px 520px at 88% 12%,#1c2018 0%,rgba(28,32,24,0) 56%),
-    radial-gradient(820px 540px at 8% 84%,#181d1b 0%,rgba(24,29,27,0) 56%),
-    linear-gradient(160deg,#1b2019 0%,#161b14 100%);
+    radial-gradient(550px 380px at 15% 30%, rgba(201, 138, 102, 0.08), transparent 70%),
+    radial-gradient(550px 380px at 85% 35%, rgba(74, 107, 93, 0.1), transparent 70%),
+    radial-gradient(700px 500px at 50% 65%, rgba(217, 160, 91, 0.09), transparent 70%);
 }
-.dark .hero-bg{
+
+.dark .hero-bg {
   background:
-    radial-gradient(430px 270px at 20% 16%,rgba(201,138,102,.08),transparent 70%),
-    radial-gradient(500px 320px at 80% 74%,rgba(74,107,93,.18),transparent 70%),
-    radial-gradient(380px 260px at 62% 18%,rgba(255,255,255,.04),transparent 72%),
-    radial-gradient(300px 220px at 30% 86%,rgba(201,138,102,.06),transparent 70%);
-}
-.dark .hero-bg:before{background:rgba(74,107,93,.22);}
-.dark .hero-bg:after{background:rgba(201,138,102,.12);}
-.dark .hand-touchpoint{background:radial-gradient(ellipse,rgba(201,138,102,.22) 0%,transparent 68%);}
-.dark .hero-ritual{background:rgba(26,31,28,.82);border-color:rgba(74,107,93,.28);}
-
-/* ---- Meditation figure ---- */
-.hero-meditation{
-  position:absolute;
-  bottom:8%;
-  right:8%;
-  width:min(340px,38vw);
-  pointer-events:none;
-  z-index:2;
-}
-.hero-meditation svg{
-  width:100%;
-  height:auto;
-  --meditation-skin:#c8a882;
-  --meditation-robe:#6b8f71;
-  --meditation-aura:#7a9e82;
-  filter:drop-shadow(0 8px 32px rgba(74,107,93,.22));
-}
-.dark .hero-meditation svg{
-  --meditation-skin:#b8946c;
-  --meditation-robe:#4a6b5d;
-  --meditation-aura:#5a8060;
-  filter:drop-shadow(0 8px 32px rgba(74,107,93,.35));
-}
-@media(max-width:680px){
-  .hero-meditation{width:min(200px,52vw);bottom:5%;right:4%;}
+    radial-gradient(550px 380px at 15% 30%, rgba(201, 138, 102, 0.07), transparent 70%),
+    radial-gradient(550px 380px at 85% 35%, rgba(74, 107, 93, 0.16), transparent 70%),
+    radial-gradient(700px 500px at 50% 65%, rgba(229, 176, 109, 0.1), transparent 70%);
 }
 
-/* ---- Glow blobs ---- */
-.hero-glow{
-  position:absolute;
-  border-radius:50%;
-  pointer-events:none;
-  z-index:1;
-  filter:blur(72px);
-  opacity:0.55;
+/* Main Hero Grid Layout: Left Copy | Center Meditation Art | Right Copy */
+.hero-main-container {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 1440px;
+  margin: auto auto;
+  padding: 20px 48px 10px;
+  display: grid;
+  grid-template-columns: minmax(260px, 1.05fr) minmax(380px, 1.9fr) minmax(260px, 1.05fr);
+  align-items: center;
+  gap: 24px;
 }
-.hero-glow-teal{
-  width:480px;height:480px;
-  background:radial-gradient(circle,rgba(74,107,93,.45) 0%,transparent 70%);
-  top:-10%;right:5%;
+
+/* Left & Right Column Typography */
+.hero-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  z-index: 3;
 }
-.hero-glow-amber{
-  width:360px;height:360px;
-  background:radial-gradient(circle,rgba(201,138,102,.35) 0%,transparent 70%);
-  bottom:10%;right:20%;
+
+.hero-col-left {
+  text-align: left;
+  align-items: flex-start;
 }
-.dark .hero-glow-teal{opacity:0.40;}
-.dark .hero-glow-amber{opacity:0.30;}
+
+.hero-col-right {
+  text-align: right;
+  align-items: flex-end;
+}
+
+.hero-col h1,
+.hero-col .hero-title {
+  font-family: var(--serif, "Playfair Display", Georgia, serif);
+  font-size: clamp(34px, 4.4vw, 56px);
+  font-weight: 500;
+  line-height: 1.12;
+  letter-spacing: -0.035em;
+  color: var(--ink, #23332b);
+  margin: 0 0 16px;
+  text-wrap: balance;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
+}
+
+.dark .hero-col h1,
+.dark .hero-col .hero-title {
+  color: #f5f2eb;
+  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.6);
+}
+
+.hero-subhead {
+  font-size: clamp(14px, 1.25vw, 17px);
+  line-height: 1.6;
+  color: var(--muted, #627269);
+  margin: 0 0 28px;
+  max-width: 320px;
+  font-weight: 400;
+}
+
+.dark .hero-subhead {
+  color: #a3b5ab;
+}
+
+/* Action CTA Buttons (Pill shape styled after reference) */
+.hero-btn-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 13px 36px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.hero-btn-primary {
+  background: #395245;
+  color: #f7f5ed;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 24px -4px rgba(36, 54, 45, 0.35);
+}
+
+.hero-btn-primary:hover {
+  background: #2b4035;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px -4px rgba(36, 54, 45, 0.5);
+  color: #ffffff;
+}
+
+.dark .hero-btn-primary {
+  background: #2b3e34;
+  color: #f2ede3;
+  border: 1px solid rgba(217, 160, 91, 0.25);
+  box-shadow: 0 8px 26px -4px rgba(0, 0, 0, 0.45);
+}
+
+.dark .hero-btn-primary:hover {
+  background: #354e41;
+  border-color: rgba(217, 160, 91, 0.45);
+}
+
+.hero-btn-outline {
+  background: transparent;
+  color: var(--ink, #23332b);
+  border: 1px solid rgba(43, 58, 51, 0.35);
+}
+
+.hero-btn-outline:hover {
+  background: rgba(255, 255, 255, 0.5);
+  border-color: var(--ink, #23332b);
+  transform: translateY(-2px);
+}
+
+.dark .hero-btn-outline {
+  color: #f4efe6;
+  border-color: rgba(244, 239, 230, 0.35);
+}
+
+.dark .hero-btn-outline:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #f4efe6;
+}
+
+/* ============================================================
+   Center Hero Art: Concentric Aura Rings & Meditation Artwork
+   ============================================================ */
+.hero-art-wrapper {
+  position: relative;
+  width: 100%;
+  height: 560px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+
+/* Concentric Radiant Aura Rings */
+.aura-rings-container {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.aura-ring {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+.aura-ring-1 {
+  width: 330px;
+  height: 330px;
+  top: calc(50% - 195px);
+  border: 1.5px solid rgba(229, 176, 109, 0.55);
+  box-shadow:
+    inset 0 0 45px rgba(217, 160, 91, 0.3),
+    0 0 55px rgba(217, 160, 91, 0.35);
+  background: radial-gradient(circle, rgba(255, 240, 204, 0.18) 0%, rgba(217, 160, 91, 0.06) 75%, transparent 100%);
+}
+
+.aura-ring-2 {
+  width: 470px;
+  height: 470px;
+  top: calc(50% - 265px);
+  border: 1.5px solid rgba(217, 160, 91, 0.4);
+  box-shadow:
+    inset 0 0 60px rgba(217, 160, 91, 0.18),
+    0 0 75px rgba(217, 160, 91, 0.22);
+}
+
+.aura-ring-3 {
+  width: 610px;
+  height: 610px;
+  top: calc(50% - 335px);
+  border: 1.5px solid rgba(217, 160, 91, 0.26);
+  box-shadow: 0 0 90px rgba(217, 160, 91, 0.15);
+}
+
+.aura-ring-4 {
+  width: 750px;
+  height: 750px;
+  top: calc(50% - 405px);
+  border: 1px solid rgba(217, 160, 91, 0.15);
+  box-shadow: 0 0 110px rgba(217, 160, 91, 0.08);
+}
+
+/* Light mode adjustments for aura rings */
+.hero-section:not(.dark) .aura-ring-1 {
+  border-color: rgba(209, 155, 96, 0.45);
+  box-shadow:
+    inset 0 0 40px rgba(209, 155, 96, 0.18),
+    0 0 45px rgba(209, 155, 96, 0.2);
+  background: radial-gradient(circle, rgba(255, 246, 224, 0.45) 0%, rgba(209, 155, 96, 0.08) 80%, transparent 100%);
+}
+
+.hero-section:not(.dark) .aura-ring-2 {
+  border-color: rgba(209, 155, 96, 0.32);
+}
+
+.hero-section:not(.dark) .aura-ring-3 {
+  border-color: rgba(209, 155, 96, 0.2);
+}
+
+.hero-section:not(.dark) .aura-ring-4 {
+  border-color: rgba(209, 155, 96, 0.12);
+}
+
+/* Main Vector Artwork SVG */
+.hero-art-svg {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 660px;
+  height: auto;
+  overflow: visible;
+  filter: drop-shadow(0 14px 40px rgba(0, 0, 0, 0.15));
+}
+
+/* Floating Emotion / Thought Badges */
+.hero-floating-tags {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.hero-badge {
+  position: absolute;
+  pointer-events: auto;
+  padding: 6px 18px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: #2b3a33;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 10px 28px -6px rgba(45, 60, 50, 0.18),
+    0 0 20px rgba(229, 176, 109, 0.3);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: default;
+  will-change: transform;
+}
+
+.hero-badge:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow:
+    0 14px 34px -6px rgba(45, 60, 50, 0.25),
+    0 0 30px rgba(229, 176, 109, 0.5);
+}
+
+.dark .hero-badge {
+  color: #1e2a22;
+  background: rgba(255, 250, 242, 0.92);
+  border: 1px solid rgba(255, 245, 230, 0.98);
+  box-shadow:
+    0 12px 32px -4px rgba(0, 0, 0, 0.55),
+    0 0 25px rgba(229, 176, 109, 0.4);
+}
+
+/* Badge coordinates mapped precisely to vector connectors */
+.badge-overthinking {
+  top: 48%;
+  left: 28%;
+}
+
+.badge-stress {
+  top: 59%;
+  left: 45%;
+}
+
+.badge-burnout {
+  top: 53%;
+  left: 31%;
+}
+
+.badge-dreshing {
+  top: 36%;
+  right: 32%;
+}
+
+.badge-burnout-alt {
+  top: 65%;
+  right: 31%;
+}
+
+/* ============================================================
+   Floating Sidebar Dock (Right Edge Toolbar)
+   ============================================================ */
+.hero-floating-dock {
+  position: fixed;
+  right: 20px;
+  top: 44%;
+  transform: translateY(-50%);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dock-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 8px;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(16px) saturate(1.3);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 999px;
+  box-shadow: 0 14px 35px -8px rgba(35, 48, 40, 0.15);
+}
+
+.dark .dock-pill {
+  background: rgba(26, 38, 30, 0.65);
+  border-color: rgba(74, 107, 93, 0.35);
+  box-shadow: 0 14px 40px -8px rgba(0, 0, 0, 0.5);
+}
+
+.dock-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: var(--muted, #627269);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.dock-btn:hover {
+  background: rgba(201, 138, 102, 0.15);
+  color: var(--clay, #c98a66);
+  transform: scale(1.1);
+}
+
+.dark .dock-btn {
+  color: #a4b8ad;
+}
+
+.dark .dock-btn:hover {
+  background: rgba(229, 176, 109, 0.2);
+  color: #f2c78e;
+}
+
+.dock-btn-accent {
+  background: #c98a66;
+  color: #fff;
+  border: 0;
+  box-shadow: 0 6px 18px rgba(201, 138, 102, 0.4);
+}
+
+.dock-btn-accent:hover {
+  background: #b57652;
+  color: #fff;
+  transform: scale(1.08);
+}
+
+.dock-actions-bottom {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.dock-btn-round {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: rgba(201, 138, 102, 0.85);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 20px rgba(201, 138, 102, 0.35);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dock-btn-round:hover {
+  background: #b57652;
+  transform: scale(1.08);
+}
+
+/* ============================================================
+   Responsive Adaptations
+   ============================================================ */
+@media (max-width: 1140px) {
+  .hero-main-container {
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding: 20px 24px;
+  }
+  .hero-col-right {
+    display: none;
+  }
+  .hero-col-left {
+    text-align: left;
+  }
+  .hero-art-wrapper {
+    height: 480px;
+  }
+}
+
+@media (max-width: 860px) {
+  .hero-section.hero-canvas {
+    min-height: auto;
+    padding: 20px 0 60px;
+  }
+  .hero-main-container {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 30px;
+    padding: 20px 20px;
+  }
+  .hero-col-left {
+    text-align: center;
+    align-items: center;
+    order: 2;
+  }
+  .hero-art-wrapper {
+    order: 1;
+    height: 380px;
+  }
+  .hero-floating-dock {
+    display: none;
+  }
+  .hero-subhead {
+    max-width: 440px;
+    margin: 0 auto 24px;
+  }
+  .aura-ring-1 { width: 240px; height: 240px; top: calc(50% - 135px); }
+  .aura-ring-2 { width: 340px; height: 340px; top: calc(50% - 185px); }
+  .aura-ring-3 { width: 440px; height: 440px; top: calc(50% - 235px); }
+  .aura-ring-4 { width: 540px; height: 540px; top: calc(50% - 285px); }
+  .hero-badge {
+    font-size: 11px;
+    padding: 5px 12px;
+  }
+  .badge-overthinking { left: 16%; top: 44%; }
+  .badge-stress { left: 40%; top: 58%; }
+  .badge-burnout { left: 20%; top: 52%; }
+  .badge-dreshing { right: 18%; top: 34%; }
+  .badge-burnout-alt { right: 18%; top: 62%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aura-ring,
+  .hero-badge,
+  .hero-art-svg motion\.circle,
+  .hero-art-svg motion\.g {
+    animation: none !important;
+    transition: none !important;
+  }
+}

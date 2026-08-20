@@ -2,13 +2,14 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import { createRootRoute, createRoute, createRouter, Link, Outlet, RouterProvider, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { MotionConfig, animate, motion, useMotionValue, useScroll, useTransform } from "framer-motion";
+import { MotionConfig, motion, useScroll, useTransform } from "framer-motion";
 import Lenis from "lenis";
-import { ArrowRight, Bell, BookOpen, Check, ChevronDown, CircleAlert, Download, Flag, Heart, HeartHandshake, LockKeyhole, LogOut, Menu, MessageCircle, Moon, PenLine, Plus, Search, Send, ShieldCheck, Sparkles, Stethoscope, Sun, Timer, UserRound, Users, Volume2, VolumeX, Wind, X, Zap } from "lucide-react";
+import { ArrowRight, Bell, BookOpen, Check, ChevronDown, CircleAlert, Download, Flag, Heart, HeartHandshake, LockKeyhole, LogOut, Menu, MessageCircle, Moon, PenLine, Plus, Search, Send, ShieldCheck, Sparkles, Stethoscope, Sun, Tag, Timer, Trash2, UserRound, Users, Volume2, VolumeX, Wand2, Wind, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Toaster, toast } from "sonner";
+import HeroCanvasArt from "@/components/HeroCanvasArt";
 import "@/App.css";
 import "@/hero-canvas.css";
 import "@/contact.css";
@@ -54,70 +55,414 @@ function AuthProvider({ children }) {
 }
 const useAuth = () => useContext(AuthContext);
 
-function Logo({ light = false }) { return <Link to="/" className={`brand-mark ${light ? "brand-mark-light" : ""}`} data-testid="brand-logo-link"><span className="brand-symbol"><Sparkles size={16} strokeWidth={1.8} /></span><span>titikjiwa</span></Link>; }
-function PublicHeader() { const [open, setOpen] = useState(false); const { theme, toggleTheme } = useTheme(); return <header className="public-header" data-testid="public-header"><Logo /><nav className={`public-nav ${open ? "public-nav-open" : ""}`} data-testid="public-navigation"><a href="/#mengapa" data-testid="nav-why-link">Mengapa titikjiwa</a><a href="/#untuk-siapa" data-testid="nav-audience-link">Untuk siapa</a><Link to="/ruang" data-testid="nav-space-link">Ruang pulih</Link></nav><div className="header-actions"><button type="button" className="theme-toggle" onClick={toggleTheme} aria-label={theme === "dark" ? "Gunakan mode terang" : "Gunakan mode gelap"} data-testid="theme-toggle-button">{theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}</button><Link to="/masuk" className="header-login" data-testid="header-login-link">Masuk</Link><Link to="/masuk" className="button button-primary button-small" data-testid="header-start-button">Mulai bercerita <ArrowRight size={15} /></Link><button className="icon-button mobile-menu" onClick={() => setOpen(!open)} aria-label="Buka menu" data-testid="mobile-menu-button">{open ? <X size={21} /> : <Menu size={21} />}</button></div></header>; }
+function Logo({ light = false }) {
+  return (
+    <Link to="/" className={`brand-mark ${light ? "brand-mark-light" : ""}`} data-testid="brand-logo-link">
+      <span className="brand-symbol">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="9" opacity="0.35" />
+          <path d="M12 6c-3 0-5 2-5 5 0 2 1.5 3.5 3 4.5 1 0.7 2 1.5 2 2.5" />
+          <path d="M12 6c3 0 5 2 5 5 0 2-1.5 3.5-3 4.5-1 0.7-2 1.5-2 2.5" />
+          <circle cx="12" cy="10" r="1.5" fill="currentColor" />
+        </svg>
+      </span>
+      <span>Titikjiva</span>
+    </Link>
+  );
+}
 
-function BreathingCard() { const [running, setRunning] = useState(false); const [phase, setPhase] = useState("Tarik napas"); useEffect(() => { if (!running) return undefined; const phases = ["Tarik napas", "Tahan sebentar", "Buang perlahan"]; let index = 0; const timer = setInterval(() => { index = (index + 1) % phases.length; setPhase(phases[index]); }, 4000); return () => clearInterval(timer); }, [running]); return <div className={`breathing-card ${running ? "is-running" : ""}`} data-testid="breathing-card"><div className="breathing-orbit"><span className="breathing-core"><Wind size={22} /></span></div><div className="breathing-copy"><span className="eyebrow">Ritual 60 detik</span><strong data-testid="breathing-phase">{running ? phase : "Berhenti sejenak"}</strong><span>{running ? "Ikuti ritmenya dengan nyaman." : "Satu menit untuk kembali ke saat ini."}</span></div><button className="breathing-toggle" onClick={() => setRunning(!running)} data-testid="breathing-toggle-button">{running ? "Jeda" : "Mulai"}</button></div>; }
+function PublicHeader() {
+  const [open, setOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    setSearchOpen(false);
+    navigate({ to: "/ruang" });
+  };
+
+  return (
+    <header className="public-header" data-testid="public-header">
+      <Logo />
+      <nav className={`public-nav ${open ? "public-nav-open" : ""}`} data-testid="public-navigation">
+        <Link to="/" data-testid="nav-home-link">Home</Link>
+        <a href="/#mengapa" data-testid="nav-about-link">About</a>
+        <Link to="/fitur" data-testid="nav-pesign-link">Pesign</Link>
+        <a href="/#untuk-siapa" data-testid="nav-deperients-link">Deperients</a>
+        <Link to="/ruang" data-testid="nav-products-link">Products</Link>
+        <Link to="/kontak" data-testid="nav-contact-link">Contact Us</Link>
+      </nav>
+      <div className="header-actions">
+        <Link to="/masuk" className="header-signup-pill" data-testid="header-signup-button">
+          Sign Up
+        </Link>
+        <button
+          type="button"
+          className="header-icon-btn"
+          onClick={() => setSearchOpen(!searchOpen)}
+          aria-label="Cari di titikjiwa"
+          data-testid="header-search-button"
+        >
+          <Search size={18} />
+        </button>
+        <Link
+          to="/masuk"
+          className="header-icon-btn"
+          aria-label="Akun pengguna"
+          data-testid="header-user-button"
+        >
+          <UserRound size={18} />
+        </Link>
+        <button
+          type="button"
+          className="theme-toggle"
+          onClick={toggleTheme}
+          aria-label={theme === "dark" ? "Gunakan mode terang" : "Gunakan mode gelap"}
+          data-testid="theme-toggle-button"
+        >
+          {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
+        </button>
+        <button
+          className="icon-button mobile-menu"
+          onClick={() => setOpen(!open)}
+          aria-label="Buka menu"
+          data-testid="mobile-menu-button"
+        >
+          {open ? <X size={21} /> : <Menu size={21} />}
+        </button>
+      </div>
+
+      {searchOpen && (
+        <div className="header-search-dropdown" data-testid="header-search-dropdown">
+          <form onSubmit={handleSearchSubmit} className="header-search-form">
+            <Search size={16} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Cari topik, jurnal, atau cerita pulih…"
+              autoFocus
+              data-testid="header-search-input"
+            />
+            <button type="button" onClick={() => setSearchOpen(false)} aria-label="Tutup pencarian">
+              <X size={15} />
+            </button>
+          </form>
+        </div>
+      )}
+    </header>
+  );
+}
+
+function BreathingCard() {
+  const [running, setRunning] = useState(false);
+  const [phase, setPhase] = useState("Tarik napas");
+  useEffect(() => {
+    if (!running) return undefined;
+    const phases = ["Tarik napas", "Tahan sebentar", "Buang perlahan"];
+    let index = 0;
+    const timer = setInterval(() => {
+      index = (index + 1) % phases.length;
+      setPhase(phases[index]);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [running]);
+
+  return (
+    <div className={`breathing-card ${running ? "is-running" : ""}`} data-testid="breathing-card">
+      <div className="breathing-orbit">
+        <span className="breathing-core"><Wind size={22} /></span>
+      </div>
+      <div className="breathing-copy">
+        <span className="eyebrow">Ritual 60 detik</span>
+        <strong data-testid="breathing-phase">{running ? phase : "Berhenti sejenak"}</strong>
+        <span>{running ? "Ikuti ritmenya dengan nyaman." : "Satu menit untuk kembali ke saat ini."}</span>
+      </div>
+      <button className="breathing-toggle" onClick={() => setRunning(!running)} data-testid="breathing-toggle-button">
+        {running ? "Jeda" : "Mulai"}
+      </button>
+    </div>
+  );
+}
 
 function LandingPage() {
-  const [showAll, setShowAll] = useState(false); const pinRef = useRef(null); const lenisRef = useRef(null);
-  useEffect(() => { const lenis = new Lenis({ duration: 1.15, smoothWheel: true }); lenisRef.current = lenis; let raf; const loop = (time) => { lenis.raf(time); raf = requestAnimationFrame(loop); }; raf = requestAnimationFrame(loop); return () => { cancelAnimationFrame(raf); lenis.destroy(); lenisRef.current = null; }; }, []);
-  const scrollTo = (id) => { const el = document.getElementById(id); if (!el) return; if (lenisRef.current) lenisRef.current.scrollTo(el, { offset: -20 }); else el.scrollIntoView({ behavior: "smooth" }); };
-  const { scrollYProgress } = useScroll({ target: pinRef, offset: ["start start", "end start"] });
-  const meditationFloat = useTransform(scrollYProgress, [0, 0.5], [0, -30]);
-  const rippleOpacity = useTransform(scrollYProgress, [0.38, 0.5], [0, 1]);
-  const rippleGrow = useTransform(scrollYProgress, [0.42, 0.88], [0, 1]);
-  const heroOpacity = useTransform(scrollYProgress, [0.58, 0.8], [1, 0]);
-  const heroY = useTransform(scrollYProgress, [0.58, 0.85], [0, -90]);
-  const heroScale = useTransform(scrollYProgress, [0.58, 0.85], [1, 0.94]);
-  return <div className="public-page"><EmergencySOS /><PublicHeader /><main>
-    <div className="hero-pin" ref={pinRef}>
-      <section className="hero-section hero-canvas" data-testid="hero-section">
-        <div className="hero-bg" aria-hidden="true" />
-        {/* Glow blobs */}
-        <div className="hero-glow hero-glow-teal" aria-hidden="true" />
-        <div className="hero-glow hero-glow-amber" aria-hidden="true" />
-        {/* Meditation figure SVG */}
-        <motion.div className="hero-meditation" style={{ y: meditationFloat }} aria-hidden="true">
-          <svg viewBox="0 0 240 280" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            {/* Head */}
-            <circle cx="120" cy="48" r="26" fill="var(--meditation-skin, #c8a882)" opacity="0.92"/>
-            {/* Body torso */}
-            <path d="M90 80 Q80 120 76 160 Q100 172 120 172 Q140 172 164 160 Q160 120 150 80 Q136 72 120 70 Q104 72 90 80Z" fill="var(--meditation-robe, #6b8f71)" opacity="0.88"/>
-            {/* Left arm */}
-            <path d="M90 88 Q62 108 52 138 Q64 148 80 144 Q88 120 96 100Z" fill="var(--meditation-robe, #6b8f71)" opacity="0.85"/>
-            {/* Right arm */}
-            <path d="M150 88 Q178 108 188 138 Q176 148 160 144 Q152 120 144 100Z" fill="var(--meditation-robe, #6b8f71)" opacity="0.85"/>
-            {/* Hands meeting at lap */}
-            <ellipse cx="120" cy="158" rx="28" ry="14" fill="var(--meditation-skin, #c8a882)" opacity="0.80"/>
-            {/* Crossed legs base */}
-            <path d="M76 160 Q60 185 52 210 Q80 220 120 218 Q160 220 188 210 Q180 185 164 160 Q140 172 120 172 Q100 172 76 160Z" fill="var(--meditation-robe, #6b8f71)" opacity="0.82"/>
-            {/* Left foot */}
-            <ellipse cx="80" cy="212" rx="20" ry="10" fill="var(--meditation-skin, #c8a882)" opacity="0.75" transform="rotate(-8 80 212)"/>
-            {/* Right foot */}
-            <ellipse cx="160" cy="212" rx="20" ry="10" fill="var(--meditation-skin, #c8a882)" opacity="0.75" transform="rotate(8 160 212)"/>
-            {/* Subtle aura ring */}
-            <circle cx="120" cy="140" r="108" stroke="var(--meditation-aura, #7a9e82)" strokeWidth="1.2" strokeDasharray="4 6" opacity="0.25"/>
-            <circle cx="120" cy="140" r="90" stroke="var(--meditation-aura, #7a9e82)" strokeWidth="0.8" opacity="0.15"/>
-          </svg>
-        </motion.div>
-        <motion.svg className="hero-ripple" viewBox="0 0 100 120" preserveAspectRatio="none" style={{ opacity: rippleOpacity }} aria-hidden="true"><defs><linearGradient id="heroRippleGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#4a6b5d" stopOpacity="0.85" /><stop offset="0.55" stopColor="#7a8f80" stopOpacity="0.4" /><stop offset="1" stopColor="#c98a66" stopOpacity="0" /></linearGradient></defs><motion.path d="M50,52 C46,62 54,68 50,78 C46,86 54,92 50,100 C48,110 52,116 50,120" fill="none" stroke="url(#heroRippleGrad)" strokeWidth="2.6" strokeLinecap="round" style={{ pathLength: rippleGrow }} /></motion.svg>
-        <motion.div className="hand-touchpoint" style={{ opacity: rippleOpacity, scale: rippleGrow }} aria-hidden="true" />
-        <motion.div className="hero-center" style={{ opacity: heroOpacity, y: heroY, scale: heroScale }}>
-          <div className="eyebrow eyebrow-dark"><span className="eyebrow-dot" /> Ruang aman untuk bertumbuh</div>
-          <h1><span className="line-mask"><motion.span initial={{ y: "112%" }} animate={{ y: 0 }} transition={{ duration: .9, ease: [.22, 1, .36, 1], delay: .12 }}>Pelan-pelan,</motion.span></span><span className="line-mask"><motion.span initial={{ y: "112%" }} animate={{ y: 0 }} transition={{ duration: .9, ease: [.22, 1, .36, 1], delay: .12 }}><em>kembali</em> ke diri</motion.span></span><span className="line-mask"><motion.span initial={{ y: "112%" }} animate={{ y: 0 }} transition={{ duration: .9, ease: [.22, 1, .36, 1], delay: .12 }}>sendiri.</motion.span></span></h1>
-          <p className="hero-lede">Tidak semua luka perlu diceritakan hari ini. titikjiwa hadir untuk menemani kamu memahami pengalaman, mengeluarkannya dengan aman, dan menemukan langkah kecil berikutnya.</p>
-          <div className="hero-actions"><Link to="/masuk" className="button button-primary button-large" data-testid="hero-primary-cta">Mulai ruang pulih <ArrowRight size={17} /></Link><button className="text-button" onClick={() => scrollTo("mengapa")} data-testid="hero-secondary-cta">Kenali titikjiwa <ChevronDown size={16} /></button></div>
-          <div className="hero-proof"><div className="avatar-stack"><span>NA</span><span>RA</span><span>MP</span><span>+</span></div><span>Ruang kecil untuk langkah<br /><strong>yang lebih berarti.</strong></span></div>
-        </motion.div>
-        <motion.div className="hero-ritual" style={{ opacity: heroOpacity, y: heroY }}><BreathingCard /></motion.div>
-      </section>
+  const [showAll, setShowAll] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const { theme } = useTheme();
+  const lenisRef = useRef(null);
+
+
+  useEffect(() => {
+    const lenis = new Lenis({ duration: 1.15, smoothWheel: true });
+    lenisRef.current = lenis;
+    let raf;
+    const loop = (time) => {
+      lenis.raf(time);
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => {
+      cancelAnimationFrame(raf);
+      lenis.destroy();
+      lenisRef.current = null;
+    };
+  }, []);
+
+  const handleMouseMove = (e) => {
+    const { clientX, clientY } = e;
+    const { innerWidth, innerHeight } = window;
+    const x = (clientX / innerWidth - 0.5) * 2;
+    const y = (clientY / innerHeight - 0.5) * 2;
+    setMousePos({ x, y });
+  };
+
+  return (
+    <div className="public-page" onMouseMove={handleMouseMove}>
+      <EmergencySOS />
+      <PublicHeader />
+      <main>
+        {/* ================= HERO SECTION ================= */}
+        <section className="hero-section hero-canvas" data-testid="hero-section">
+          <div className="hero-bg" aria-hidden="true" />
+
+          <div className="hero-main-container">
+            {/* Left Column Typography */}
+            <motion.div
+              className="hero-col hero-col-left"
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <h1 className="hero-title" data-testid="hero-heading-left">
+                Temukan<br />
+                Ketenangan<br />
+                Anda
+              </h1>
+              <p className="hero-subhead" data-testid="hero-subhead-left">
+                Perjalanan Menuju<br />
+                Mental yang Sehat.
+              </p>
+              <Link
+                to="/masuk"
+                className="hero-btn-pill hero-btn-primary"
+                data-testid="hero-primary-cta"
+              >
+                Mulai
+              </Link>
+            </motion.div>
+
+            {/* Center Vector Meditation Art & Animation */}
+            <motion.div
+              className="hero-center-art-col"
+              initial={{ opacity: 0, scale: 0.94 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
+            >
+              <HeroCanvasArt
+                mouseX={mousePos.x}
+                mouseY={mousePos.y}
+                isDark={theme === "dark"}
+              />
+            </motion.div>
+
+            {/* Right Column Typography */}
+            <motion.div
+              className="hero-col hero-col-right"
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+            >
+              <h2 className="hero-title" data-testid="hero-heading-right">
+                Temukan<br />
+                Ketenangan<br />
+                Anda.
+              </h2>
+              <p className="hero-subhead" data-testid="hero-subhead-right">
+                Perjalanan Menuju<br />
+                Mental yang Sehat.
+              </p>
+              <Link
+                to="/masuk"
+                className="hero-btn-pill hero-btn-outline"
+                data-testid="hero-secondary-cta"
+              >
+                Mulai
+              </Link>
+            </motion.div>
+          </div>
+
+          {/* Floating Sidebar Dock on the Right Edge (mockup matching) */}
+          <aside className="hero-floating-dock" aria-label="Aksi Cepat" data-testid="hero-floating-dock">
+            <div className="dock-pill">
+              <Link to="/ruang" className="dock-btn" title="Teman AI" aria-label="Teman AI">
+                <Wand2 size={16} />
+              </Link>
+              <button
+                type="button"
+                className="dock-btn"
+                title="Pencarian"
+                aria-label="Pencarian"
+                onClick={() => {
+                  const input = document.querySelector('[data-testid="header-search-input"]');
+                  if (input) input.focus();
+                  else document.querySelector('[data-testid="header-search-button"]')?.click();
+                }}
+              >
+                <Search size={16} />
+              </button>
+              <Link to="/ruang" className="dock-btn" title="Tag & Jurnal" aria-label="Tag & Jurnal">
+                <Tag size={16} />
+              </Link>
+              <Link to="/masuk" className="dock-btn" title="Profil Akun" aria-label="Profil Akun">
+                <UserRound size={16} />
+              </Link>
+            </div>
+            <div className="dock-actions-bottom">
+              <Link to="/ruang" className="dock-btn-round" title="Tulis Jurnal Cepat" aria-label="Tulis Jurnal Cepat">
+                <PenLine size={17} />
+              </Link>
+              <button
+                type="button"
+                className="dock-btn-round"
+                title="Bersihkan Pikiran / Putar Chime"
+                aria-label="Bersihkan Pikiran"
+                onClick={() => {
+                  playChime();
+                  toast.success("Tarik napas perlahan dan lepaskan beban sejenak.");
+                }}
+              >
+                <Trash2 size={17} />
+              </button>
+            </div>
+          </aside>
+        </section>
+
+        {/* ================= 01 MENGAPA TITIKJIWA ================= */}
+        <section className="intro-section page-container" id="mengapa" data-testid="why-section">
+          <span className="chapter-number" aria-hidden="true">01</span>
+          <div className="section-kicker">01 — Mengapa titikjiwa</div>
+          <motion.div
+            className="intro-grid"
+            initial={{ opacity: 0, y: 26 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-70px" }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          >
+            <h2>Karena pulih tidak harus <em>sendirian.</em></h2>
+            <p>Setiap orang punya cerita yang membentuknya. Di sini, kamu boleh menyimpannya rapat-rapat sebagai jurnal pribadi, atau membaginya anonim untuk memberi dan menerima dukungan.</p>
+          </motion.div>
+          <div className="feature-grid">
+            <Feature icon={<LockKeyhole />} number="01" title="Tulis tanpa takut" text="Jurnal pribadi yang hanya bisa kamu lihat. Ruang untuk jujur pada diri sendiri." />
+            <Feature icon={<HeartHandshake />} number="02" title="Ditemani yang mengerti" text="Cerita anonim, dukungan hangat, dan percakapan yang tidak menghakimi." />
+            <Feature icon={<BookOpen />} number="03" title="Temukan langkah" text="Panduan dari psikolog terverifikasi dan direktori bantuan yang mudah dijangkau." />
+          </div>
+        </section>
+
+        {/* ================= STORY / PRINSIP ================= */}
+        <section className="story-section page-container" data-testid="story-section">
+          <motion.div
+            className="story-card"
+            initial={{ opacity: 0, y: 26 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-70px" }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          >
+            <div className="story-quote">“</div>
+            <p>Ruang ini bukan untuk memaksa kita melupakan. Tapi untuk perlahan mengerti apa yang pernah terjadi, dan memilih apa yang ingin kita bawa ke depan.</p>
+            <span>— Prinsip titikjiwa</span>
+          </motion.div>
+          <motion.div
+            className="story-aside"
+            initial={{ opacity: 0, y: 26 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-70px" }}
+            transition={{ duration: 0.6, delay: 0.12, ease: "easeOut" }}
+          >
+            <span className="eyebrow">Yang kamu temukan di sini</span>
+            <ul>
+              <li><Check size={16} /> Bahasa yang manusiawi</li>
+              <li><Check size={16} /> Privasi yang dihormati</li>
+              <li><Check size={16} /> Dukungan yang nyata</li>
+            </ul>
+            <Link to="/masuk" className="inline-link" data-testid="story-cta-link">
+              Masuk ke ruangmu <ArrowRight size={15} />
+            </Link>
+          </motion.div>
+        </section>
+
+        {/* ================= 02 UNTUK SIAPA ================= */}
+        <section className="audience-section" id="untuk-siapa" data-testid="audience-section">
+          <div className="page-container audience-inner">
+            <span className="chapter-number" aria-hidden="true">02</span>
+            <motion.div
+              initial={{ opacity: 0, y: 26 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-70px" }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+            >
+              <div className="section-kicker">02 — Untuk siapa</div>
+              <h2>Untuk kamu yang<br /><em>sedang belajar</em> memahami diri.</h2>
+            </motion.div>
+            <div className="audience-list">
+              <AudienceItem title="Yang sedang memulai" text="Ingin punya tempat aman untuk menulis dan menamai apa yang dirasakan." delay={0} />
+              <AudienceItem title="Yang sedang menemani" text="Ingin berbagi pengalaman tanpa mengambil alih proses orang lain." delay={0.1} />
+              <AudienceItem title="Yang ingin bertumbuh" text="Siap menemukan insight baru dengan panduan yang bertanggung jawab." delay={0.2} />
+            </div>
+          </div>
+        </section>
+
+        {/* ================= 03 DARI PARA AHLI ================= */}
+        <section className="articles-preview page-container" data-testid="articles-preview-section">
+          <span className="chapter-number" aria-hidden="true">03</span>
+          <motion.div
+            className="section-heading"
+            initial={{ opacity: 0, y: 26 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-70px" }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          >
+            <div>
+              <div className="section-kicker">03 — Dari para ahli</div>
+              <h2>Pengetahuan yang terasa <em>dekat.</em></h2>
+            </div>
+            <button className="text-button" onClick={() => setShowAll(!showAll)} data-testid="articles-toggle-button">
+              {showAll ? "Sembunyikan" : "Lihat semua panduan"} <ArrowRight size={16} />
+            </button>
+          </motion.div>
+          <div className="article-strip">
+            <ArticleTeaser category="REGULASI EMOSI" title="Saat tubuh menyimpan cerita yang belum selesai" color="sage" delay={0} />
+            <ArticleTeaser category="RELASI SEHAT" title="Batasan diri bukan bentuk penolakan" color="clay" delay={0.08} />
+            <ArticleTeaser category="JURNAL" title="Mulai dari satu kalimat yang jujur" color="sand" delay={0.16} />
+          </div>
+          {showAll && <div className="mini-note" data-testid="articles-expanded-note">Panduan lengkap tersedia setelah kamu masuk ke ruang titikjiwa.</div>}
+        </section>
+
+        {/* ================= FINAL CTA ================= */}
+        <section className="final-cta">
+          <motion.div
+            className="page-container final-cta-inner"
+            initial={{ opacity: 0, y: 26 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-70px" }}
+            transition={{ duration: 0.65, ease: "easeOut" }}
+          >
+            <div className="section-kicker">Mulai dari mana saja</div>
+            <h2>Satu langkah kecil<br />bisa mengubah <em>arah.</em></h2>
+            <p>Tulis satu kalimat. Baca satu cerita. Tarik napas. Kamu tidak perlu menyelesaikan semuanya hari ini.</p>
+            <Link to="/masuk" className="button button-light button-large" data-testid="final-cta-button">
+              Buka ruang pulih <ArrowRight size={17} />
+            </Link>
+          </motion.div>
+        </section>
+      </main>
+      <InfoFooter />
+>>>>>>> cdba29f (feat(landing): redesign hero section with animated meditation artwork, thought mandala, aura rings and full dark/light theme support)
     </div>
-      <section className="intro-section page-container" id="mengapa" data-testid="why-section"><span className="chapter-number" aria-hidden="true">01</span><div className="section-kicker">01 — Mengapa titikjiwa</div><motion.div className="intro-grid" initial={{ opacity: 0, y: 26 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-70px" }} transition={{ duration: .6, ease: "easeOut" }}><h2>Karena pulih tidak harus <em>sendirian.</em></h2><p>Setiap orang punya cerita yang membentuknya. Di sini, kamu boleh menyimpannya rapat-rapat sebagai jurnal pribadi, atau membaginya anonim untuk memberi dan menerima dukungan.</p></motion.div><div className="feature-grid"><Feature icon={<LockKeyhole />} number="01" title="Tulis tanpa takut" text="Jurnal pribadi yang hanya bisa kamu lihat. Ruang untuk jujur pada diri sendiri." /><Feature icon={<HeartHandshake />} number="02" title="Ditemani yang mengerti" text="Cerita anonim, dukungan hangat, dan percakapan yang tidak menghakimi." /><Feature icon={<BookOpen />} number="03" title="Temukan langkah" text="Panduan dari psikolog terverifikasi dan direktori bantuan yang mudah dijangkau." /></div></section>
-      <section className="story-section page-container" data-testid="story-section"><motion.div className="story-card" initial={{ opacity: 0, y: 26 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-70px" }} transition={{ duration: .6, ease: "easeOut" }}><div className="story-quote">“</div><p>Ruang ini bukan untuk memaksa kita melupakan. Tapi untuk perlahan mengerti apa yang pernah terjadi, dan memilih apa yang ingin kita bawa ke depan.</p><span>— Prinsip titikjiwa</span></motion.div><motion.div className="story-aside" initial={{ opacity: 0, y: 26 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-70px" }} transition={{ duration: .6, delay: .12, ease: "easeOut" }}><span className="eyebrow">Yang kamu temukan di sini</span><ul><li><Check size={16} /> Bahasa yang manusiawi</li><li><Check size={16} /> Privasi yang dihormati</li><li><Check size={16} /> Dukungan yang nyata</li></ul><Link to="/masuk" className="inline-link" data-testid="story-cta-link">Masuk ke ruangmu <ArrowRight size={15} /></Link></motion.div></section>
-      <section className="audience-section" id="untuk-siapa" data-testid="audience-section"><div className="page-container audience-inner"><span className="chapter-number" aria-hidden="true">02</span><motion.div initial={{ opacity: 0, y: 26 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-70px" }} transition={{ duration: .6, ease: "easeOut" }}><div className="section-kicker">02 — Untuk siapa</div><h2>Untuk kamu yang<br /><em>sedang belajar</em> memahami diri.</h2></motion.div><div className="audience-list"><AudienceItem title="Yang sedang memulai" text="Ingin punya tempat aman untuk menulis dan menamai apa yang dirasakan." delay={0} /><AudienceItem title="Yang sedang menemani" text="Ingin berbagi pengalaman tanpa mengambil alih proses orang lain." delay={.1} /><AudienceItem title="Yang ingin bertumbuh" text="Siap menemukan insight baru dengan panduan yang bertanggung jawab." delay={.2} /></div></div></section>
-      <section className="articles-preview page-container" data-testid="articles-preview-section"><span className="chapter-number" aria-hidden="true">03</span><motion.div className="section-heading" initial={{ opacity: 0, y: 26 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-70px" }} transition={{ duration: .6, ease: "easeOut" }}><div><div className="section-kicker">03 — Dari para ahli</div><h2>Pengetahuan yang terasa <em>dekat.</em></h2></div><button className="text-button" onClick={() => setShowAll(!showAll)} data-testid="articles-toggle-button">{showAll ? "Sembunyikan" : "Lihat semua panduan"} <ArrowRight size={16} /></button></motion.div><div className="article-strip"><ArticleTeaser category="REGULASI EMOSI" title="Saat tubuh menyimpan cerita yang belum selesai" color="sage" delay={0} /><ArticleTeaser category="RELASI SEHAT" title="Batasan diri bukan bentuk penolakan" color="clay" delay={.08} /><ArticleTeaser category="JURNAL" title="Mulai dari satu kalimat yang jujur" color="sand" delay={.16} /></div>{showAll && <div className="mini-note" data-testid="articles-expanded-note">Panduan lengkap tersedia setelah kamu masuk ke ruang titikjiwa.</div>}</section>
-      <section className="final-cta"><motion.div className="page-container final-cta-inner" initial={{ opacity: 0, y: 26 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-70px" }} transition={{ duration: .65, ease: "easeOut" }}><div className="section-kicker">Mulai dari mana saja</div><h2>Satu langkah kecil<br />bisa mengubah <em>arah.</em></h2><p>Tulis satu kalimat. Baca satu cerita. Tarik napas. Kamu tidak perlu menyelesaikan semuanya hari ini.</p><Link to="/masuk" className="button button-light button-large" data-testid="final-cta-button">Buka ruang pulih <ArrowRight size={17} /></Link></motion.div></section></main><InfoFooter /></div>;
+  );
 }
 function Marquee() { const words = ["Ruang aman untuk bercerita", "Jurnal yang hanya milikmu", "Cerita anonim tanpa penghakiman", "Psikolog terverifikasi", "Pulih dengan caramu"]; return <div className="marquee-strip" aria-hidden="true" data-testid="editorial-marquee"><div className="marquee-track">{[0, 1].map((copy) => <div className="marquee-group" key={copy}>{words.map((word) => <span key={word}>{word}<i /></span>)}</div>)}</div></div>; }
 function Feature({ icon, number, title, text }) { return <motion.article className="feature-item" initial={{ opacity: 0, y: 26 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-70px" }} transition={{ duration: .55, delay: parseInt(number, 10) * .09, ease: "easeOut" }}><div className="feature-top"><span className="feature-icon">{icon}</span><span>{number}</span></div><h3>{title}</h3><p>{text}</p></motion.article>; }
