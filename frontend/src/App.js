@@ -1,10 +1,18 @@
+/**
+ * Module: Titikjiwa public application shell and route components
+ * Purpose: Render the marketing hero, wellness flows, authentication-aware pages, and shared navigation
+ * Used by: frontend/src/index.js and TanStack Router route tree
+ * Dependencies: React, TanStack Router, React Query, Framer Motion, Lenis, Axios, Lucide
+ * Public functions: App route components, LandingPage, AuthProvider, ThemeProvider
+ * Side effects: Reads/writes localStorage, performs backend HTTP requests, starts browser animations and audio feedback
+ */
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createRootRoute, createRoute, createRouter, Link, Outlet, RouterProvider, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { MotionConfig, motion, useScroll, useTransform } from "framer-motion";
+import { AnimatePresence, MotionConfig, motion, useScroll, useTransform } from "framer-motion";
 import Lenis from "lenis";
-import { ArrowRight, Bell, BookOpen, Check, ChevronDown, CircleAlert, Download, Flag, Heart, HeartHandshake, LockKeyhole, LogOut, Menu, MessageCircle, Moon, PenLine, Plus, Search, Send, ShieldCheck, Sparkles, Stethoscope, Sun, Tag, Timer, Trash2, UserRound, Users, Volume2, VolumeX, Wand2, Wind, X, Zap } from "lucide-react";
+import { ArrowRight, Bell, BookOpen, Check, ChevronDown, CircleAlert, Download, Flag, Heart, HeartHandshake, LockKeyhole, LogOut, Menu, MessageCircle, Moon, PenLine, Plus, Search, Send, ShieldCheck, Sparkles, Stethoscope, Sun, Timer, UserRound, Users, Volume2, VolumeX, Wind, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,7 +30,7 @@ function ThemeProvider({ children }) {
     if (typeof window === "undefined") return "light";
     const stored = window.localStorage.getItem("tj-theme");
     if (stored === "dark" || stored === "light") return stored;
-    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    return "dark";
   });
   useEffect(() => {
     const root = document.documentElement;
@@ -66,7 +74,7 @@ function Logo({ light = false }) {
           <circle cx="12" cy="10" r="1.5" fill="currentColor" />
         </svg>
       </span>
-      <span>Titikjiva</span>
+      <span>Titikjiwa</span>
     </Link>
   );
 }
@@ -88,13 +96,13 @@ function PublicHeader() {
   return (
     <header className="public-header" data-testid="public-header">
       <Logo />
-      <nav className={`public-nav ${open ? "public-nav-open" : ""}`} data-testid="public-navigation">
+      <nav id="public-navigation" className={`public-nav ${open ? "public-nav-open" : ""}`} data-testid="public-navigation">
         <Link to="/" data-testid="nav-home-link">Home</Link>
-        <a href="/#mengapa" data-testid="nav-about-link">About</a>
-        <Link to="/fitur" data-testid="nav-pesign-link">Pesign</Link>
-        <a href="/#untuk-siapa" data-testid="nav-deperients-link">Deperients</a>
-        <Link to="/ruang" data-testid="nav-products-link">Products</Link>
-        <Link to="/kontak" data-testid="nav-contact-link">Contact Us</Link>
+        <a href="/#mengapa" data-testid="nav-about-link">Mengapa</a>
+        <Link to="/fitur" data-testid="nav-pesign-link">Fitur</Link>
+        <a href="/#untuk-siapa" data-testid="nav-deperients-link">Untuk siapa</a>
+        <Link to="/ruang" data-testid="nav-products-link">Ruang</Link>
+        <Link to="/kontak" data-testid="nav-contact-link">Kontak</Link>
       </nav>
       <div className="header-actions">
         <Link to="/masuk" className="header-signup-pill" data-testid="header-signup-button">
@@ -130,6 +138,8 @@ function PublicHeader() {
           className="icon-button mobile-menu"
           onClick={() => setOpen(!open)}
           aria-label="Buka menu"
+          aria-expanded={open}
+          aria-controls="public-navigation"
           data-testid="mobile-menu-button"
         >
           {open ? <X size={21} /> : <Menu size={21} />}
@@ -189,12 +199,29 @@ function BreathingCard() {
   );
 }
 
+const INTRO_LINES = [
+  "Jurnal pribadi yang hanya bisa kamu baca.",
+  "Cerita anonim tanpa takut dihakimi.",
+  "Panduan psikolog yang mudah dipahami.",
+  "Teman refleksi untuk menemani langkahmu.",
+];
+
 function LandingPage() {
   const [showAll, setShowAll] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [introIdx, setIntroIdx] = useState(0);
+  const [heroCursorLabel, setHeroCursorLabel] = useState("Titikjiwa: ruang aman untuk memahami diri");
   const { theme } = useTheme();
   const lenisRef = useRef(null);
+  const heroCursorRef = useRef(null);
+  const heroCursorLabelRef = useRef("Titikjiwa: ruang aman untuk memahami diri");
 
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setIntroIdx((prev) => (prev + 1) % INTRO_LINES.length);
+    }, 2600);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const lenis = new Lenis({ duration: 1.15, smoothWheel: true });
@@ -220,14 +247,32 @@ function LandingPage() {
     setMousePos({ x, y });
   };
 
+  const handleHeroPointerMove = (event) => {
+    if (heroCursorRef.current) {
+      heroCursorRef.current.style.transform = `translate3d(${event.clientX + 16}px, ${event.clientY + 16}px, 0)`;
+    }
+    const nextLabel = event.target.closest(".hero-center-art-col")
+      ? "Temukan ruang untuk memahami diri"
+      : event.target.closest(".hero-actions-primary")
+        ? "Mulai jurnal privat"
+        : "Titikjiwa: ruang aman untuk memahami diri";
+    if (nextLabel !== heroCursorLabelRef.current) {
+      heroCursorLabelRef.current = nextLabel;
+      setHeroCursorLabel(nextLabel);
+    }
+  };
+
   return (
     <div className="public-page" onMouseMove={handleMouseMove}>
-      <EmergencySOS />
       <PublicHeader />
       <main>
         {/* ================= HERO SECTION ================= */}
-        <section className="hero-section hero-canvas" data-testid="hero-section">
+        <section className="hero-section hero-canvas" data-testid="hero-section" onPointerMove={handleHeroPointerMove}>
           <div className="hero-bg" aria-hidden="true" />
+          <span ref={heroCursorRef} className="hero-context-cursor" aria-hidden="true">
+            <span className="hero-context-cursor-dot" />
+            {heroCursorLabel}
+          </span>
 
           <div className="hero-main-container">
             {/* Left Column Typography */}
@@ -237,22 +282,42 @@ function LandingPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
             >
+              <span className="hero-eyebrow">Ruang kesehatan mental yang terasa manusiawi</span>
               <h1 className="hero-title" data-testid="hero-heading-left">
                 Temukan<br />
                 Ketenangan<br />
                 Anda
               </h1>
-              <p className="hero-subhead" data-testid="hero-subhead-left">
-                Perjalanan Menuju<br />
-                Mental yang Sehat.
+              <p className="hero-value">
+                Titikjiwa adalah ruang privat untuk menulis jurnal, berbagi cerita anonim,
+                dan menemukan panduan tepercaya bagi kesehatan mentalmu.
               </p>
-              <Link
-                to="/masuk"
-                className="hero-btn-pill hero-btn-primary"
-                data-testid="hero-primary-cta"
-              >
-                Mulai
-              </Link>
+              <div className="hero-subhead-wrapper" aria-live="off">
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.p
+                    key={introIdx}
+                    className="hero-subhead"
+                    data-testid="hero-subhead-left"
+                    initial={{ opacity: 0, y: 12, filter: "blur(4px)" }}
+                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                    exit={{ opacity: 0, y: -12, filter: "blur(4px)" }}
+                    transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                  >
+                    {INTRO_LINES[introIdx]}
+                  </motion.p>
+                </AnimatePresence>
+              </div>
+              <div className="hero-actions-primary">
+                <Link
+                  to="/masuk"
+                  className="hero-btn-pill hero-btn-primary"
+                  data-testid="hero-primary-cta"
+                >
+                  Buka ruangmu <ArrowRight size={16} />
+                </Link>
+                <a href="/#mengapa" className="hero-learn-link">Kenali titikjiwa</a>
+              </div>
+              <span className="hero-trust"><ShieldCheck size={15} /> Privat, anonim, dan tanpa penghakiman.</span>
             </motion.div>
 
             {/* Center Vector Meditation Art & Animation */}
@@ -269,82 +334,11 @@ function LandingPage() {
               />
             </motion.div>
 
-            {/* Right Column Typography */}
-            <motion.div
-              className="hero-col hero-col-right"
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-            >
-              <h2 className="hero-title" data-testid="hero-heading-right">
-                Temukan<br />
-                Ketenangan<br />
-                Anda.
-              </h2>
-              <p className="hero-subhead" data-testid="hero-subhead-right">
-                Perjalanan Menuju<br />
-                Mental yang Sehat.
-              </p>
-              <Link
-                to="/masuk"
-                className="hero-btn-pill hero-btn-outline"
-                data-testid="hero-secondary-cta"
-              >
-                Mulai
-              </Link>
-            </motion.div>
           </div>
-
-          {/* Floating Sidebar Dock on the Right Edge (mockup matching) */}
-          <aside className="hero-floating-dock" aria-label="Aksi Cepat" data-testid="hero-floating-dock">
-            <div className="dock-pill">
-              <Link to="/ruang" className="dock-btn" title="Teman AI" aria-label="Teman AI">
-                <Wand2 size={16} />
-              </Link>
-              <button
-                type="button"
-                className="dock-btn"
-                title="Pencarian"
-                aria-label="Pencarian"
-                onClick={() => {
-                  const input = document.querySelector('[data-testid="header-search-input"]');
-                  if (input) input.focus();
-                  else document.querySelector('[data-testid="header-search-button"]')?.click();
-                }}
-              >
-                <Search size={16} />
-              </button>
-              <Link to="/ruang" className="dock-btn" title="Tag & Jurnal" aria-label="Tag & Jurnal">
-                <Tag size={16} />
-              </Link>
-              <Link to="/masuk" className="dock-btn" title="Profil Akun" aria-label="Profil Akun">
-                <UserRound size={16} />
-              </Link>
-            </div>
-            <div className="dock-actions-bottom">
-              <Link to="/ruang" className="dock-btn-round" title="Tulis Jurnal Cepat" aria-label="Tulis Jurnal Cepat">
-                <PenLine size={17} />
-              </Link>
-              <button
-                type="button"
-                className="dock-btn-round"
-                title="Bersihkan Pikiran / Putar Chime"
-                aria-label="Bersihkan Pikiran"
-                onClick={() => {
-                  playChime();
-                  toast.success("Tarik napas perlahan dan lepaskan beban sejenak.");
-                }}
-              >
-                <Trash2 size={17} />
-              </button>
-            </div>
-          </aside>
         </section>
 
-        {/* ================= 01 MENGAPA TITIKJIWA ================= */}
+        {/* ================= MENGAPA TITIKJIWA ================= */}
         <section className="intro-section page-container" id="mengapa" data-testid="why-section">
-          <span className="chapter-number" aria-hidden="true">01</span>
-          <div className="section-kicker">01 — Mengapa titikjiwa</div>
           <motion.div
             className="intro-grid"
             initial={{ opacity: 0, y: 26 }}
@@ -352,8 +346,14 @@ function LandingPage() {
             viewport={{ once: true, margin: "-70px" }}
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
-            <h2>Karena pulih tidak harus <em>sendirian.</em></h2>
-            <p>Setiap orang punya cerita yang membentuknya. Di sini, kamu boleh menyimpannya rapat-rapat sebagai jurnal pribadi, atau membaginya anonim untuk memberi dan menerima dukungan.</p>
+            <div className="section-copy">
+              <h2>Karena pulih tidak harus <em>sendirian.</em></h2>
+              <p>Setiap orang punya cerita yang membentuknya. Di sini, kamu boleh menyimpannya rapat-rapat sebagai jurnal pribadi, atau membaginya anonim untuk memberi dan menerima dukungan.</p>
+              <div className="intro-actions">
+                <Link to="/masuk" className="button button-primary" data-testid="intro-journal-button">Mulai jurnal pribadi <ArrowRight size={16} /></Link>
+                <Link to="/ruang" className="inline-link" data-testid="intro-stories-link">Baca cerita anonim <ArrowRight size={15} /></Link>
+              </div>
+            </div>
           </motion.div>
           <div className="feature-grid">
             <Feature icon={<LockKeyhole />} number="01" title="Tulis tanpa takut" text="Jurnal pribadi yang hanya bisa kamu lihat. Ruang untuk jujur pada diri sendiri." />
@@ -394,17 +394,15 @@ function LandingPage() {
           </motion.div>
         </section>
 
-        {/* ================= 02 UNTUK SIAPA ================= */}
+        {/* ================= UNTUK SIAPA ================= */}
         <section className="audience-section" id="untuk-siapa" data-testid="audience-section">
           <div className="page-container audience-inner">
-            <span className="chapter-number" aria-hidden="true">02</span>
             <motion.div
               initial={{ opacity: 0, y: 26 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-70px" }}
               transition={{ duration: 0.6, ease: "easeOut" }}
             >
-              <div className="section-kicker">02 — Untuk siapa</div>
               <h2>Untuk kamu yang<br /><em>sedang belajar</em> memahami diri.</h2>
             </motion.div>
             <div className="audience-list">
@@ -415,9 +413,8 @@ function LandingPage() {
           </div>
         </section>
 
-        {/* ================= 03 DARI PARA AHLI ================= */}
+        {/* ================= DARI PARA AHLI ================= */}
         <section className="articles-preview page-container" data-testid="articles-preview-section">
-          <span className="chapter-number" aria-hidden="true">03</span>
           <motion.div
             className="section-heading"
             initial={{ opacity: 0, y: 26 }}
@@ -426,7 +423,6 @@ function LandingPage() {
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
             <div>
-              <div className="section-kicker">03 — Dari para ahli</div>
               <h2>Pengetahuan yang terasa <em>dekat.</em></h2>
             </div>
             <button className="text-button" onClick={() => setShowAll(!showAll)} data-testid="articles-toggle-button">
@@ -450,22 +446,26 @@ function LandingPage() {
             viewport={{ once: true, margin: "-70px" }}
             transition={{ duration: 0.65, ease: "easeOut" }}
           >
-            <div className="section-kicker">Mulai dari mana saja</div>
-            <h2>Satu langkah kecil<br />bisa mengubah <em>arah.</em></h2>
-            <p>Tulis satu kalimat. Baca satu cerita. Tarik napas. Kamu tidak perlu menyelesaikan semuanya hari ini.</p>
-            <Link to="/masuk" className="button button-light button-large" data-testid="final-cta-button">
-              Buka ruang pulih <ArrowRight size={17} />
-            </Link>
+            <div className="final-cta-copy">
+              <div className="section-kicker">Mulai dari mana saja</div>
+              <h2>Satu langkah kecil<br />bisa mengubah <em>arah.</em></h2>
+              <p>Tulis satu kalimat. Baca satu cerita. Tarik napas. Kamu tidak perlu menyelesaikan semuanya hari ini.</p>
+            </div>
+            <div className="final-cta-action">
+              <Link to="/masuk" className="button button-light button-large" data-testid="final-cta-button">
+                Buka ruang pulih <ArrowRight size={17} />
+              </Link>
+              <span className="final-cta-note">Privat sejak langkah pertama.</span>
+            </div>
           </motion.div>
         </section>
       </main>
       <InfoFooter />
->>>>>>> cdba29f (feat(landing): redesign hero section with animated meditation artwork, thought mandala, aura rings and full dark/light theme support)
     </div>
   );
 }
 function Marquee() { const words = ["Ruang aman untuk bercerita", "Jurnal yang hanya milikmu", "Cerita anonim tanpa penghakiman", "Psikolog terverifikasi", "Pulih dengan caramu"]; return <div className="marquee-strip" aria-hidden="true" data-testid="editorial-marquee"><div className="marquee-track">{[0, 1].map((copy) => <div className="marquee-group" key={copy}>{words.map((word) => <span key={word}>{word}<i /></span>)}</div>)}</div></div>; }
-function Feature({ icon, number, title, text }) { return <motion.article className="feature-item" initial={{ opacity: 0, y: 26 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-70px" }} transition={{ duration: .55, delay: parseInt(number, 10) * .09, ease: "easeOut" }}><div className="feature-top"><span className="feature-icon">{icon}</span><span>{number}</span></div><h3>{title}</h3><p>{text}</p></motion.article>; }
+function Feature({ icon, number, title, text }) { return <motion.article className="feature-item" initial={{ opacity: 0, y: 26 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-70px" }} transition={{ duration: .55, delay: parseInt(number, 10) * .09, ease: "easeOut" }}><div className="feature-top"><span className="feature-icon">{icon}</span><span className="feature-number">{number}</span></div><h3>{title}</h3><p>{text}</p></motion.article>; }
 function AudienceItem({ title, text, delay = 0 }) { return <motion.div className="audience-item" initial={{ opacity: 0, y: 22 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-70px" }} transition={{ duration: .55, delay, ease: "easeOut" }}><span className="audience-line" /><div><h3>{title}</h3><p>{text}</p></div></motion.div>; }
 function ArticleTeaser({ category, title, color, delay = 0 }) { return <motion.article className={`article-teaser ${color}`} initial={{ opacity: 0, y: 26 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-70px" }} transition={{ duration: .55, delay, ease: "easeOut" }}><span>{category}</span><h3>{title}</h3><ArrowRight size={17} /></motion.article>; }
 
@@ -517,7 +517,7 @@ function AdminPsychologists() { const queryClient = useQueryClient(); const blan
 function AdminUsers() { const queryClient = useQueryClient(); const { user: me } = useAuth(); const [q, setQ] = useState(""); const [roleFilter, setRoleFilter] = useState("semua"); const { data: users = [], isLoading } = useQuery({ queryKey: ["admin-users"], queryFn: () => api.get("/admin/users").then((r) => r.data) }); const update = useMutation({ mutationFn: ({ id, patch: body }) => api.patch(`/admin/users/${id}`, body), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-users"] }); queryClient.invalidateQueries({ queryKey: ["admin-stats"] }); toast.success("Data pengguna diperbarui."); }, onError: (e) => toast.error(errorMessage(e)) }); const resetPw = useMutation({ mutationFn: ({ id, password }) => api.post(`/admin/users/${id}/reset-password`, { password }), onSuccess: () => toast.success("Kata sandi pengguna diatur ulang."), onError: (e) => toast.error(errorMessage(e)) }); const remove = useMutation({ mutationFn: (id) => api.delete(`/admin/users/${id}`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-users"] }); queryClient.invalidateQueries({ queryKey: ["admin-stats"] }); toast.success("Pengguna beserta datanya dihapus."); }, onError: (e) => toast.error(errorMessage(e)) }); const filtered = users.filter((u) => (roleFilter === "semua" || u.role === roleFilter) && (!q || u.email.toLowerCase().includes(q.toLowerCase()) || (u.alias || "").toLowerCase().includes(q.toLowerCase()))); return <div className="workspace-content" data-testid="admin-users"><WorkspaceHeading eyebrow="Ruang admin" title="Kelola pengguna." text="Tinjau akun, ubah peran, atau hapus pengguna beserta datanya." /><div className="user-toolbar"><div className="search-box"><Search size={15} /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari email atau nama…" data-testid="user-search-input" /></div><div className="auth-tabs admin-tabs"><button className={roleFilter === "semua" ? "active" : ""} onClick={() => setRoleFilter("semua")} data-testid="user-filter-all">Semua ({users.length})</button><button className={roleFilter === "member" ? "active" : ""} onClick={() => setRoleFilter("member")} data-testid="user-filter-member">Member</button><button className={roleFilter === "psikolog" ? "active" : ""} onClick={() => setRoleFilter("psikolog")} data-testid="user-filter-psikolog">Psikolog</button><button className={roleFilter === "admin" ? "active" : ""} onClick={() => setRoleFilter("admin")} data-testid="user-filter-admin">Admin</button></div></div><div className="report-list">{isLoading ? <div className="empty-state">Memuat daftar…</div> : filtered.length === 0 ? <div className="empty-state" data-testid="admin-no-users"><UserRound size={24} /><strong>Tidak ada pengguna.</strong><span>Belum ada akun yang cocok dengan pencarianmu.</span></div> : filtered.map((u) => <article className="report-card user-row" key={u.id} data-testid={`admin-user-${u.id}`}><div className="user-main"><span className="user-avatar">{u.alias ? u.alias.slice(0, 2).toUpperCase() : ".."}</span><div><strong data-testid={`user-alias-${u.id}`}>{u.alias}{u.id === me?.id && <span className="psy-badge">Kamu</span>}</strong><span>{u.email}</span><time>Bergabung {u.created_at ? new Date(u.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "—"}</time></div></div><div className="user-controls"><select value={u.role} onChange={(e) => update.mutate({ id: u.id, patch: { role: e.target.value } })} disabled={u.id === me?.id} data-testid={`role-select-${u.id}`}><option value="member">Member</option><option value="psikolog">Psikolog</option><option value="admin">Admin</option></select><span className={`status-badge ${u.disabled ? "rejected" : "confirmed"}`} data-testid={`user-status-${u.id}`}>{u.disabled ? "Nonaktif" : "Aktif"}</span><button className="text-button" onClick={() => { const pw = window.prompt("Kata sandi baru (min. 8 karakter):"); if (pw && pw.length >= 8) resetPw.mutate({ id: u.id, password: pw }); else if (pw) toast.error("Kata sandi minimal 8 karakter."); }} disabled={resetPw.isPending} data-testid={`reset-pw-${u.id}-button`}>Atur kata sandi</button><button className="text-button danger-text" onClick={() => { if (window.confirm(`Hapus akun ${u.email} beserta seluruh datanya (jurnal, notifikasi, riwayat)? Tindakan ini tidak bisa dibatalkan.`)) remove.mutate(u.id); }} disabled={remove.isPending || u.id === me?.id} data-testid={`delete-user-${u.id}-button`}><X size={14} /> Hapus</button></div></article>)}</div></div>; }
 function AdminView() { const queryClient = useQueryClient(); const [tab, setTab] = useState("laporan"); const { data: reports = [], isLoading } = useQuery({ queryKey: ["admin-reports"], queryFn: () => api.get("/admin/reports").then((r) => r.data) }); const dismiss = useMutation({ mutationFn: (id) => api.post(`/admin/reports/${id}/dismiss`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-reports"] }); toast.success("Laporan diabaikan."); }, onError: (e) => toast.error(errorMessage(e)) }); const removePost = useMutation({ mutationFn: (postId) => api.delete(`/admin/posts/${postId}`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-reports"] }); queryClient.invalidateQueries({ queryKey: ["posts"] }); toast.success("Cerita dihapus dari ruang komunitas."); }, onError: (e) => toast.error(errorMessage(e)) }); return <div className="workspace-content" data-testid="admin-dashboard"><WorkspaceHeading eyebrow="Ruang admin" title="Jaga ruang ini tetap aman." text="Tinjau laporan komunitas dan terbitkan panduan baru untuk semua pengguna." /><div className="auth-tabs admin-tabs"><button className={tab === "laporan" ? "active" : ""} onClick={() => setTab("laporan")} data-testid="admin-tab-reports-button">Laporan ({reports.length})</button><button className={tab === "artikel" ? "active" : ""} onClick={() => setTab("artikel")} data-testid="admin-tab-article-button">Terbitkan artikel</button><button className={tab === "psikolog" ? "active" : ""} onClick={() => setTab("psikolog")} data-testid="admin-tab-psychologists-button">Psikolog</button></div>{tab === "laporan" ? <div className="report-list" data-testid="admin-report-list">{isLoading ? <div className="empty-state">Memuat laporan…</div> : reports.length === 0 ? <div className="empty-state" data-testid="admin-no-reports"><ShieldCheck size={24} /><strong>Tidak ada laporan aktif.</strong><span>Ruang komunitas sedang tertata dengan baik.</span></div> : reports.map((report) => <article className="report-card" key={report.id} data-testid={`report-card-${report.id}`}><div className="report-card-head"><span className="eyebrow">Laporan cerita</span><time>{new Date(report.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long" })}</time></div>{report.post ? <><h3>{report.post.title}</h3><p>{report.post.body}</p><span className="report-meta">Ditulis oleh {report.post.alias} · topik {report.post.topic}</span></> : <p className="report-meta">Cerita asli sudah tidak tersedia.</p>}<div className="report-actions">{report.post && <button className="button button-outline" onClick={() => removePost.mutate(report.post_id)} disabled={removePost.isPending} data-testid={`remove-post-${report.id}-button`}><X size={15} /> Hapus cerita</button>}<button className="text-button" onClick={() => dismiss.mutate(report.id)} disabled={dismiss.isPending} data-testid={`dismiss-report-${report.id}-button`}>Abaikan laporan</button></div></article>)}</div> : tab === "artikel" ? <ArticleComposer /> : <AdminPsychologists />}</div>; }
 
-function InfoFooter() { return <footer className="site-footer" data-testid="info-footer"><div className="page-container footer-inner"><p className="footer-line">Pulih dengan caramu. Pelan-pelan.</p><div className="footer-grid"><div className="footer-brand"><Logo /><p>Ruang yang lahir dari keyakinan bahwa pulih adalah hak semua orang.</p></div><div><h4>Ruang</h4><a href="/#mengapa">Kenapa titikjiwa</a><a href="/#untuk-siapa">Untuk siapa</a><Link to="/fitur">Fitur</Link></div><div><h4>Sumber daya</h4><Link to="/tutorial">Tutorial</Link><Link to="/kontak" className="footer-link" data-testid="footer-contact-link">Kontak</Link></div><div><h4>Perusahaan</h4><Link to="/privasi">Privasi</Link><Link to="/syarat">Ketentuan</Link></div></div><div className="footer-meta"><span className="footer-safe"><ShieldCheck size={15} /> Aman &amp; penuh perhatian</span><span>© 2026 titikjiwa. <span className="footer-version" data-testid="footer-version">v{APP_VERSION}</span></span></div></div></footer>; }
+function InfoFooter() { return <footer className="site-footer" data-testid="info-footer"><div className="page-container footer-inner"><p className="footer-line">Pulih dengan caramu. Pelan-pelan.</p><div className="footer-grid"><div className="footer-brand"><Logo /><p>Ruang yang lahir dari keyakinan bahwa pulih adalah hak semua orang.</p></div><div><h4>Ruang</h4><a href="/#mengapa">Kenapa titikjiwa</a><a href="/#untuk-siapa">Untuk siapa</a><Link to="/fitur">Fitur</Link></div><div><h4>Sumber daya</h4><Link to="/tutorial">Tutorial</Link><Link to="/kontak" className="footer-link" data-testid="footer-contact-link">Kontak</Link></div><div><h4>Perusahaan</h4><Link to="/privasi">Privasi</Link><Link to="/syarat">Ketentuan</Link></div></div><div className="footer-meta"><span className="footer-safe"><ShieldCheck size={15} /> Aman &amp; penuh perhatian</span><span>© 2026 titikjiwa · <span className="footer-version" data-testid="footer-version" aria-label={`Versi aplikasi ${APP_VERSION}`}>Versi {APP_VERSION}</span></span></div></div></footer>; }
 
 function KontakPage() { const [form, setForm] = useState({ name: "", email: "", message: "" }); const [busy, setBusy] = useState(false); const submit = (event) => { event.preventDefault(); setBusy(true); setTimeout(() => { setBusy(false); setForm({ name: "", email: "", message: "" }); toast.success("Pesanmu terkirim. Kami membalas pelan-pelan — maksimal 2 hari kerja."); }, 650); }; return <div className="public-page"><PublicHeader /><main className="info-page page-container" data-testid="contact-page"><motion.div className="info-hero" initial={{ opacity: 0, y: 26 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .6, ease: "easeOut" }}><span className="eyebrow">Kontak</span><h1>Kamu boleh mengetuk, <em>pelan-pelan.</em></h1><p>Punya pertanyaan, masukan, atau butuh bantuan teknis? Tulis pesan — tim kami membacanya dengan hati-hati.</p></motion.div><div className="contact-grid" data-testid="contact-grid"><div className="contact-info"><div className="contact-card"><span className="eyebrow">Email</span><a href="mailto:halo@titikjiwa.id" data-testid="contact-email-link">halo@titikjiwa.id</a><span>Untuk pertanyaan umum dan kemitraan.</span></div><div className="contact-card"><span className="eyebrow">Situasi darurat</span><a href="tel:112" data-testid="contact-emergency-link">112</a><span>Jika keselamatanmu atau orang lain terancam, hubungi segera — jangan menunggu balasan di sini.</span></div><div className="contact-card"><span className="eyebrow">Jam respons</span><strong>Senin–Jumat, 09.00–17.00 WIB</strong><span>Pesan di luar jam dibalas pada hari kerja berikutnya.</span></div></div><form className="composer-card contact-form" onSubmit={submit} data-testid="contact-form"><div className="composer-heading"><div><span className="eyebrow">Tulis pesan</span><h2>Ceritakan yang ingin kamu sampaikan.</h2></div></div><label>Nama<Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Nama panggilanmu" required data-testid="contact-name-input" /></label><label>Email<Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="email@contoh.com" required data-testid="contact-email-input" /></label><label>Pesan<Textarea value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder="Tulis dengan tenang…" rows={5} required data-testid="contact-message-input" /></label><button className="button button-primary" disabled={busy} data-testid="contact-submit-button">{busy ? "Mengirim…" : "Kirim pesan"}<Send size={15} /></button></form></div><div className="info-cta"><Link to="/masuk" className="button button-primary" data-testid="contact-cta-button">Kembali ke ruang pulih <ArrowRight size={16} /></Link></div></main><InfoFooter /></div>; }
 
