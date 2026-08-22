@@ -1,9 +1,19 @@
+<!--
+  Module: Titikjiwa document shell
+  Purpose: Provide app mount point, metadata, favicon, and app icon branding
+  Used by: CRA/CRACO production and development entrypoints
+  Dependencies: React bundle, public/titikjiwa-logo.png
+  Public functions: HTML document bootstrap
+  Side effects: Browser metadata registration and script loading
+-->
 <!doctype html>
 <html lang="en">
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#000000" />
+        <meta name="theme-color" content="#121714" />
+        <link rel="icon" type="image/png" sizes="32x32" href="%PUBLIC_URL%/titikjiwa-logo.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="%PUBLIC_URL%/titikjiwa-logo.png" />
         <meta name="description" content="titikjiwa — ruang aman untuk memahami pengalaman, menulis jurnal pribadi, dan menemukan langkah kecil berikutnya." />
         <title>titikjiwa — Ruang aman untuk bertumbuh</title>
         <link rel="preconnect" href="https://fonts.googleapis.com" />

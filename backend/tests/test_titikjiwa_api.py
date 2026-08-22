@@ -1,10 +1,20 @@
 import os
+import re
 import uuid
 
 import pytest
 import requests
 
 BASE_URL = os.environ.get("TEST_BASE_URL", "http://localhost:8001").rstrip("/")
+
+def registration_payload(email, password, alias, client):
+    challenge = client.get(f"{BASE_URL}/api/auth/captcha")
+    assert challenge.status_code == 200
+    question = challenge.json()["question"]
+    first, operator, second = re.search(r"Berapa (\d+) ([+−]) (\d+)\?", question).groups()
+    answer = int(first) + int(second) if operator == "+" else int(first) - int(second)
+    data = challenge.json()
+    return {"email": email, "password": password, "alias": alias, "captcha_id": data["id"], "captcha_answer": str(answer)}
 
 
 @pytest.fixture(scope="module")
@@ -15,7 +25,7 @@ def client():
 @pytest.fixture(scope="module")
 def member(client):
     email = f"test_{uuid.uuid4().hex[:10]}@example.com"
-    r = client.post(f"{BASE_URL}/api/auth/register", json={"email": email, "password": "TestPass123!", "alias": "Penguji API"})
+    r = client.post(f"{BASE_URL}/api/auth/register", json=registration_payload(email, "TestPass123!", "Penguji API", client))
     assert r.status_code == 200 and r.json()["user"]["role"] == "member"
     return r.json()["user"]
 
@@ -86,7 +96,7 @@ def test_admin_manage_users(client):
     assert users.status_code == 200 and len(users.json()) >= 1
     # buat user baru untuk dikelola
     email = f"kelola{uuid.uuid4().hex[:8]}@test.id"
-    assert client.post(f"{BASE_URL}/api/auth/register", json={"email": email, "password": "Rahasia123", "alias": "User Kelola"}).status_code == 200
+    assert client.post(f"{BASE_URL}/api/auth/register", json=registration_payload(email, "Rahasia123", "User Kelola", client)).status_code == 200
     target = next(u for u in s.get(f"{BASE_URL}/api/admin/users").json() if u["email"] == email)
     # nonaktifkan -> login harus ditolak
     assert s.patch(f"{BASE_URL}/api/admin/users/{target['id']}", json={"disabled": True}).status_code == 200

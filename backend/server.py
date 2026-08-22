@@ -1,3 +1,11 @@
+"""
+Module: Titikjiwa API server
+Purpose: Serve authentication, journaling, community, and mental-health support APIs
+Used by: frontend/src/App.js and authenticated client routes
+Dependencies: FastAPI, MongoDB/Motor, JWT, bcrypt, Resend
+Public functions: auth endpoints, workspace endpoints, custom CAPTCHA endpoints
+Side effects: Reads/writes MongoDB, sets auth cookies, creates one-time CAPTCHA challenges
+"""
 from dotenv import load_dotenv
 from pathlib import Path
 
@@ -5,21 +13,24 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 from fastapi import FastAPI, APIRouter, Depends, HTTPException, Request, Response
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel, Field, ConfigDict, EmailStr
+from pydantic import BaseModel, Field, ConfigDict, EmailStr, field_validator
 from typing import List, Optional
 import os
 import logging
 import uuid
 import secrets
+import time
+from collections import defaultdict, deque
 import asyncio
 import json
 import re
 import jwt
 import bcrypt
 import resend
+from pymongo.errors import DuplicateKeyError
 from datetime import datetime, timezone, timedelta
 
 
@@ -34,6 +45,43 @@ app = FastAPI()
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
+class InMemoryRateLimiter:
+    """Per-process sliding-window limiter; use Redis for multi-instance deployments."""
+    def __init__(self):
+        self.events = defaultdict(deque)
+        self.lock = asyncio.Lock()
+
+    async def hit(self, key: str, limit: int, window: int):
+        now = time.monotonic()
+        async with self.lock:
+            bucket = self.events[key]
+            while bucket and bucket[0] <= now - window:
+                bucket.popleft()
+            if len(bucket) >= limit:
+                retry_after = max(1, int(bucket[0] + window - now))
+                return False, retry_after
+            bucket.append(now)
+            return True, 0
+
+rate_limiter = InMemoryRateLimiter()
+
+@app.middleware("http")
+async def request_rate_limit(request: Request, call_next):
+    if request.method == "OPTIONS":
+        return await call_next(request)
+    ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "unknown")
+    path = request.url.path
+    if path in {"/api/auth/login", "/api/auth/register", "/api/auth/captcha", "/api/auth/forgot-password", "/api/auth/reset-password"}:
+        limit, window, group = 10, 60, "auth"
+    elif path.startswith("/api/ai/"):
+        limit, window, group = 20, 60, "ai"
+    else:
+        limit, window, group = 120, 60, "api"
+    allowed, retry_after = await rate_limiter.hit(f"{ip}:{group}", limit, window)
+    if not allowed:
+        return JSONResponse(status_code=429, content={"detail": "Terlalu banyak permintaan. Coba lagi sebentar."}, headers={"Retry-After": str(retry_after)})
+    return await call_next(request)
+
 
 JWT_ALGORITHM = "HS256"
 
@@ -41,6 +89,16 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8)
     alias: str = Field(min_length=2, max_length=30)
+    captcha_id: str = Field(min_length=16, max_length=128)
+    captcha_answer: str = Field(min_length=1, max_length=16)
+
+    @field_validator("alias", "captcha_id", "captcha_answer")
+    @classmethod
+    def reject_blank_values(cls, value):
+        value = value.strip()
+        if not value or any(ord(char) < 32 for char in value):
+            raise ValueError("Nilai tidak boleh kosong atau mengandung karakter kontrol.")
+        return value
 
 class LoginInput(BaseModel):
     email: EmailStr
@@ -51,6 +109,16 @@ class JournalCreate(BaseModel):
     body: str = Field(min_length=1, max_length=5000)
     mood: str = "Netral"
 
+    @field_validator("title", "body", "mood")
+    @classmethod
+    def validate_journal_text(cls, value):
+        value = value.strip()
+        if not value or any(ord(char) < 32 and char not in "\n\t" for char in value):
+            raise ValueError("Teks jurnal tidak valid.")
+        if value.count("\n") > 100:
+            raise ValueError("Teks jurnal terlalu banyak baris.")
+        return value
+
 class PostCreate(BaseModel):
     title: str = Field(min_length=1, max_length=140)
     body: str = Field(min_length=1, max_length=5000)
@@ -58,13 +126,37 @@ class PostCreate(BaseModel):
     support_type: str = "Butuh didengarkan"
     sensitive: bool = False
 
+    @field_validator("title", "body", "topic", "support_type")
+    @classmethod
+    def validate_post_text(cls, value):
+        value = value.strip()
+        if not value or any(ord(char) < 32 and char not in "\n\t" for char in value):
+            raise ValueError("Isi cerita tidak valid.")
+        return value
+
 class CommentCreate(BaseModel):
     body: str = Field(min_length=1, max_length=800)
+
+    @field_validator("body")
+    @classmethod
+    def validate_comment(cls, value):
+        value = value.strip()
+        if not value or any(ord(char) < 32 and char not in "\n\t" for char in value):
+            raise ValueError("Komentar tidak valid.")
+        return value
 
 class ConsultationCreate(BaseModel):
     psychologist_id: str
     preferred_day: str
     note: str = Field(min_length=1, max_length=1000)
+
+    @field_validator("psychologist_id", "preferred_day", "note")
+    @classmethod
+    def validate_consultation_text(cls, value):
+        value = value.strip()
+        if not value or any(ord(char) < 32 and char not in "\n\t" for char in value):
+            raise ValueError("Data konsultasi tidak valid.")
+        return value
 
 class ForgotPasswordInput(BaseModel):
     email: EmailStr
@@ -126,6 +218,12 @@ async def seed_content():
     await db.users.create_index("email", unique=True)
     await db.login_attempts.create_index("identifier")
     await db.password_reset_tokens.create_index("expires_at", expireAfterSeconds=0)
+    await db.captcha_challenges.create_index("expires_at", expireAfterSeconds=0)
+    await db.reactions.create_index([("post_id", 1), ("user_id", 1), ("type", 1)], unique=True)
+    await db.reports.create_index([("post_id", 1), ("user_id", 1)], unique=True)
+    await db.profiles.create_index("user_id", unique=True)
+    await db.aura_history.create_index([("user_id", 1), ("week_key", 1)], unique=True)
+    await db.weekly_insights.create_index([("user_id", 1), ("week_key", 1)], unique=True)
     owner_email = os.environ.get("OWNER_EMAIL", os.environ.get("ADMIN_EMAIL", "raydiansyah@gmail.com")).lower()
     owner_password = os.environ.get("OWNER_PASSWORD") or os.environ["ADMIN_PASSWORD"]
     owner = await db.users.find_one({"email": owner_email}, {"_id": 0})
@@ -164,6 +262,21 @@ async def root():
 
 MAX_FAILED_ATTEMPTS = 5
 LOCKOUT_MINUTES = 15
+@api_router.get("/auth/captcha")
+async def create_captcha():
+    first = secrets.randbelow(9) + 2
+    second = secrets.randbelow(9) + 2
+    operation = secrets.choice(["+", "−"])
+    answer = first + second if operation == "+" else first - second
+    challenge_id = secrets.token_urlsafe(24)
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=5)
+    await db.captcha_challenges.insert_one({"id": challenge_id, "answer": str(answer), "expires_at": expires_at})
+    return {"id": challenge_id, "question": f"Berapa {first} {operation} {second}?", "expires_at": expires_at.isoformat()}
+
+async def verify_captcha(challenge_id: str, answer: str):
+    challenge = await db.captcha_challenges.find_one_and_delete({"id": challenge_id, "expires_at": {"$gt": datetime.now(timezone.utc)}})
+    if not challenge or not secrets.compare_digest(str(challenge["answer"]), answer.strip()):
+        raise HTTPException(status_code=400, detail="CAPTCHA salah atau sudah kedaluwarsa. Silakan minta soal baru.")
 
 async def check_lockout(identifier: str):
     attempt = await db.login_attempts.find_one({"identifier": identifier}, {"_id": 0})
@@ -181,12 +294,14 @@ async def record_failed_attempt(identifier: str):
     await db.login_attempts.update_one({"identifier": identifier}, {"$set": update}, upsert=True)
 
 @api_router.post("/auth/register")
-async def register(payload: UserCreate, response: Response):
+async def register(payload: UserCreate, request: Request, response: Response):
+    await verify_captcha(payload.captcha_id, payload.captcha_answer)
     email = payload.email.lower()
-    if await db.users.find_one({"email": email}, {"_id": 0}):
-        raise HTTPException(status_code=409, detail="Email sudah terdaftar.")
     user = {"id": str(uuid.uuid4()), "email": email, "password_hash": hash_password(payload.password), "alias": payload.alias.strip(), "role": "member", "created_at": now_iso()}
-    await db.users.insert_one(user)
+    try:
+        await db.users.insert_one(user)
+    except DuplicateKeyError as exc:
+        raise HTTPException(status_code=409, detail="Email sudah terdaftar.") from exc
     set_auth_cookies(response, user)
     return {"user": public_user(user)}
 
@@ -262,14 +377,17 @@ async def forgot_password(payload: ForgotPasswordInput):
 
 @api_router.post("/auth/reset-password")
 async def reset_password(payload: ResetPasswordInput):
-    record = await db.password_reset_tokens.find_one({"token": payload.token})
-    expires_at = record["expires_at"] if record else None
-    if expires_at is not None and expires_at.tzinfo is None:
-        expires_at = expires_at.replace(tzinfo=timezone.utc)
-    if not record or record.get("used") or expires_at < datetime.now(timezone.utc):
+    result = await db.password_reset_tokens.update_one(
+        {"token": payload.token, "used": False, "expires_at": {"$gt": datetime.now(timezone.utc)}},
+        {"$set": {"used": True, "used_at": now_iso()}},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=400, detail="Tautan pemulihan tidak valid atau sudah kedaluwarsa.")
+    record = await db.password_reset_tokens.find_one({"token": payload.token}, {"_id": 0, "user_id": 1})
+    if not record:
         raise HTTPException(status_code=400, detail="Tautan pemulihan tidak valid atau sudah kedaluwarsa.")
     await db.users.update_one({"id": record["user_id"]}, {"$set": {"password_hash": hash_password(payload.password)}})
-    await db.password_reset_tokens.update_one({"token": payload.token}, {"$set": {"used": True}})
+    await db.refresh_tokens.delete_many({"user_id": record["user_id"]})
     return {"ok": True, "message": "Kata sandi berhasil diperbarui."}
 
 @api_router.get("/auth/me")
@@ -305,13 +423,23 @@ async def create_post(payload: PostCreate, user=Depends(current_user)):
 class ReactInput(BaseModel):
     type: str
 
+    @field_validator("type")
+    @classmethod
+    def validate_reaction_type(cls, value):
+        value = value.strip()
+        if value not in REACTION_TYPES:
+            raise ValueError("Reaksi tidak dikenal.")
+        return value
+
 @api_router.post("/posts/{post_id}/react")
 async def react_post(post_id: str, payload: ReactInput, user=Depends(current_user)):
-    if payload.type not in REACTION_TYPES:
-        raise HTTPException(status_code=400, detail="Reaksi tidak dikenal.")
     post = await db.posts.find_one({"id": post_id}, {"_id": 0, "author_id": 1, "title": 1})
     if not post:
         raise HTTPException(status_code=404, detail="Cerita tidak ditemukan.")
+    try:
+        await db.reactions.insert_one({"post_id": post_id, "user_id": user["id"], "type": payload.type, "created_at": now_iso()})
+    except DuplicateKeyError:
+        return {"ok": True, "duplicate": True}
     await db.posts.update_one({"id": post_id}, {"$inc": {f"reactions.{payload.type}": 1}})
     if post.get("author_id") and post["author_id"] != user["id"]:
         label = {"hug": "Pelukan", "strength": "Kekuatan", "relate": "Aku paham"}[payload.type]
@@ -321,6 +449,21 @@ async def react_post(post_id: str, payload: ReactInput, user=Depends(current_use
 class EmergencyContactInput(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     phone: str = Field(min_length=3, max_length=20)
+
+    @field_validator("name", "phone")
+    @classmethod
+    def validate_contact(cls, value):
+        value = value.strip()
+        if not value or any(ord(char) < 32 for char in value):
+            raise ValueError("Kontak tidak valid.")
+        return value
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, value):
+        if not re.fullmatch(r"[0-9+() .-]{3,20}", value):
+            raise ValueError("Nomor telepon tidak valid.")
+        return value
 
 @api_router.post("/emergency-contact")
 async def save_emergency_contact(payload: EmergencyContactInput, user=Depends(current_user)):
@@ -440,7 +583,12 @@ async def get_comments(post_id: str):
 
 @api_router.post("/posts/{post_id}/report")
 async def report_post(post_id: str, user=Depends(current_user)):
-    await db.reports.insert_one({"id": str(uuid.uuid4()), "post_id": post_id, "user_id": user["id"], "created_at": now_iso()})
+    if await db.posts.find_one({"id": post_id}, {"_id": 1}) is None:
+        raise HTTPException(status_code=404, detail="Cerita tidak ditemukan.")
+    try:
+        await db.reports.insert_one({"id": str(uuid.uuid4()), "post_id": post_id, "user_id": user["id"], "created_at": now_iso()})
+    except DuplicateKeyError:
+        return {"ok": True, "message": "Laporanmu sudah tercatat sebelumnya."}
     return {"ok": True, "message": "Laporan diterima dan akan ditinjau tim kami."}
 
 class ArticleCreate(BaseModel):
@@ -503,12 +651,14 @@ async def admin_psychologists(admin=Depends(require_admin)):
 @api_router.post("/admin/psychologists")
 async def admin_create_psychologist(payload: PsychologistCreate, admin=Depends(require_admin)):
     email = payload.email.lower()
-    if await db.users.find_one({"email": email}, {"_id": 0}):
-        raise HTTPException(status_code=409, detail="Email sudah terdaftar.")
     psy_id = str(uuid.uuid4())
     initials = "".join(part[0] for part in payload.name.replace(",", " ").split() if part[0].isalpha())[:2].upper()
     await db.psychologists.insert_one({"id": psy_id, "name": payload.name.strip(), "specialty": payload.specialty.strip(), "city": payload.city.strip(), "availability": payload.availability.strip(), "bio": payload.bio.strip(), "initials": initials or "PS", "verified": True, "active": True})
-    await db.users.insert_one({"id": str(uuid.uuid4()), "email": email, "password_hash": hash_password(payload.password), "alias": payload.name.strip(), "role": "psikolog", "psychologist_id": psy_id, "created_at": now_iso()})
+    try:
+        await db.users.insert_one({"id": str(uuid.uuid4()), "email": email, "password_hash": hash_password(payload.password), "alias": payload.name.strip(), "role": "psikolog", "psychologist_id": psy_id, "created_at": now_iso()})
+    except DuplicateKeyError as exc:
+        await db.psychologists.delete_one({"id": psy_id})
+        raise HTTPException(status_code=409, detail="Email sudah terdaftar.") from exc
     return {"ok": True, "id": psy_id}
 
 @api_router.post("/admin/psychologists/{psy_id}/toggle")
@@ -705,6 +855,16 @@ class UserUpdate(BaseModel):
     role: Optional[str] = None
     alias: Optional[str] = None
     disabled: Optional[bool] = None
+
+    @field_validator("alias")
+    @classmethod
+    def validate_alias(cls, value):
+        if value is None:
+            return value
+        value = value.strip()
+        if len(value) < 2 or any(ord(char) < 32 for char in value):
+            raise ValueError("Nama samaran tidak valid.")
+        return value
 
 class UserPasswordReset(BaseModel):
     password: str = Field(min_length=8)
