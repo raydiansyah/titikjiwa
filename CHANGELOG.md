@@ -1,3 +1,57 @@
+# [1.6.0](https://github.com/raydiansyah/titikjiwa/compare/v1.5.0...v1.6.0) (2026-08-22)
+
+
+### Features
+
+* harden auth and refine interactive branding ([9b18e4a](https://github.com/raydiansyah/titikjiwa/commit/9b18e4a21aff2732bd7479b245d965ccc054392e))
+
+# [1.5.0](https://github.com/raydiansyah/titikjiwa/compare/v1.4.0...v1.5.0) (2026-08-20)
+
+
+### Features
+
+* **landing:** redesign hero section with animated meditation artwork, thought mandala, aura rings and full dark/light theme support ([f12aceb](https://github.com/raydiansyah/titikjiwa/commit/f12aceb29b22fd03b52070c534af6a50d3895e14))
+
+# [1.4.0](https://github.com/raydiansyah/titikjiwa/compare/v1.3.1...v1.4.0) (2026-08-19)
+
+
+### Features
+
+* **hero:** ganti hand illustration → SVG figur meditasi + glow blobs dark/light mode ([f8f8baa](https://github.com/raydiansyah/titikjiwa/commit/f8f8baa609ae7414f1e76b5fe0b2c30da1c259e4))
+
+## [1.3.1](https://github.com/raydiansyah/titikjiwa/compare/v1.3.0...v1.3.1) (2026-08-19)
+
+
+### Bug Fixes
+
+* **frontend:** build script baca version dari package.json via node -e ([01709d9](https://github.com/raydiansyah/titikjiwa/commit/01709d954e812d6f7e2f98bc7967366e6bca2cbb))
+
+# [1.3.0](https://github.com/raydiansyah/titikjiwa/compare/v1.2.0...v1.3.0) (2026-08-19)
+
+
+### Features
+
+* **ui:** dark mode, theme toggle, unified footer, hero dark canvas ([a72c978](https://github.com/raydiansyah/titikjiwa/commit/a72c9785c746e9dd65b53491b0188e0bb2c1057b))
+
+# [1.2.0](https://github.com/raydiansyah/titikjiwa/compare/v1.1.0...v1.2.0) (2026-08-18)
+
+
+### Features
+
+* **ui:** tampilkan versi aplikasi di footer ([c5fa13a](https://github.com/raydiansyah/titikjiwa/commit/c5fa13ab6afb1cae04169eb11358352217c4a162))
+
+# [1.1.0](https://github.com/raydiansyah/titikjiwa/compare/v1.0.6...v1.1.0) (2026-08-18)
+
+
+### Bug Fixes
+
+* **ci:** pakai email admin domain .id (email-validator menolak TLD reserved .test) ([00d01a9](https://github.com/raydiansyah/titikjiwa/commit/00d01a9c339a667888662f29a7e4e5ba55ff954c))
+
+
+### Features
+
+* **admin:** admin default raydiansyah@gmail.com + kelola semua pengguna ([1dc0f00](https://github.com/raydiansyah/titikjiwa/commit/1dc0f00e73694c476e89ddd4c9889bc699a98519))
+
 ## [1.0.6](https://github.com/raydiansyah/titikjiwa/compare/v1.0.5...v1.0.6) (2026-08-18)
 
 

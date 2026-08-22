@@ -1,10 +1,19 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+/**
+ * Module: Titikjiwa public application shell and route components
+ * Purpose: Render the marketing hero, wellness flows, authentication-aware pages, and shared navigation
+ * Used by: frontend/src/index.js and TanStack Router route tree
+ * Dependencies: React, TanStack Router, React Query, Framer Motion, Lenis, Axios, Lucide
+ * Public functions: App route components, LandingPage, AuthProvider, ThemeProvider
+ * Side effects: Reads/writes localStorage, performs backend HTTP requests, starts browser animations and audio feedback
+ */
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createRootRoute, createRoute, createRouter, Link, Outlet, RouterProvider, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { MotionConfig, animate, motion, useMotionValue, useScroll, useTransform } from "framer-motion";
+import { AnimatePresence, MotionConfig, motion, useScroll, useTransform } from "framer-motion";
+import { gsap } from "gsap";
 import Lenis from "lenis";
-import { ArrowRight, Bell, BookOpen, Check, ChevronDown, CircleAlert, Download, Flag, Heart, HeartHandshake, LockKeyhole, LogOut, Menu, MessageCircle, PenLine, Plus, Search, Send, ShieldCheck, Sparkles, Stethoscope, Timer, UserRound, Users, Volume2, VolumeX, Wind, X, Zap } from "lucide-react";
+import { ArrowRight, ArrowUp, Bell, BookOpen, Check, ChevronDown, CircleAlert, Download, Flag, Heart, HeartHandshake, LockKeyhole, LogOut, Menu, MessageCircle, Moon, PenLine, Plus, Search, Send, ShieldCheck, Sparkles, Stethoscope, Sun, Timer, UserRound, Users, Volume2, VolumeX, Wind, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +23,26 @@ import "@/hero-canvas.css";
 import "@/contact.css";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const APP_VERSION = process.env.REACT_APP_VERSION || "dev";
+const ThemeContext = createContext({ theme: "light", toggleTheme: () => {} });
+function ThemeProvider({ children }) {
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === "undefined") return "light";
+    const stored = window.localStorage.getItem("tj-theme");
+    if (stored === "dark" || stored === "light") return stored;
+    return "dark";
+  });
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle("dark", theme === "dark");
+    root.setAttribute("data-theme", theme);
+    window.localStorage.setItem("tj-theme", theme);
+  }, [theme]);
+  const toggleTheme = () => setTheme((current) => (current === "dark" ? "light" : "dark"));
+  const value = useMemo(() => ({ theme, toggleTheme }), [theme]);
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+}
+function useTheme() { return useContext(ThemeContext); }
 const api = axios.create({ baseURL: API, withCredentials: true });
 function errorMessage(error) { const detail = error?.response?.data?.detail; if (typeof detail === "string") return detail; if (Array.isArray(detail)) return detail.map((item) => item?.msg).filter(Boolean).join(" "); return "Ada sedikit kendala. Coba lagi sebentar."; }
 const DAILY_PROMPTS = ["Hal kecil apa yang membantumu merasa sedikit lebih aman?", "Apa yang ingin kamu maafkan dari dirimu hari ini?", "Kapan terakhir kali kamu merasa benar-benar tenang?", "Apa yang sedang kamu tahan dan ingin kamu lepaskan?", "Siapa yang membuatmu merasa diterima apa adanya?", "Apa yang akan kamu katakan pada dirimu di masa kecil?", "Batasan apa yang ingin kamu jaga minggu ini?", "Apa yang biasanya kamu rasakan tapi jarang kamu akui?", "Hal apa yang dulu berat, tapi kini terasa lebih ringan?", "Apa yang kamu butuhkan hari ini, sejujurnya?", "Momen kecil apa yang ingin kamu simpan dari minggu ini?", "Apa yang membuatmu bertahan sampai hari ini?", "Bagaimana rasanya menjadi dirimu akhir-akhir ini?", "Apa yang ingin kamu dengar dari orang lain saat ini?"];
@@ -34,89 +63,409 @@ function AuthProvider({ children }) {
 }
 const useAuth = () => useContext(AuthContext);
 
-function Logo({ light = false }) { return <Link to="/" className={`brand-mark ${light ? "brand-mark-light" : ""}`} data-testid="brand-logo-link"><span className="brand-symbol"><Sparkles size={16} strokeWidth={1.8} /></span><span>titikjiwa</span></Link>; }
-function PublicHeader() { const [open, setOpen] = useState(false); return <header className="public-header" data-testid="public-header"><Logo /><nav className={`public-nav ${open ? "public-nav-open" : ""}`} data-testid="public-navigation"><a href="#mengapa" data-testid="nav-why-link">Mengapa titikjiwa</a><a href="#untuk-siapa" data-testid="nav-audience-link">Untuk siapa</a><Link to="/ruang" data-testid="nav-space-link">Ruang pulih</Link></nav><div className="header-actions"><Link to="/masuk" className="header-login" data-testid="header-login-link">Masuk</Link><Link to="/masuk" className="button button-primary button-small" data-testid="header-start-button">Mulai bercerita <ArrowRight size={15} /></Link><button className="icon-button mobile-menu" onClick={() => setOpen(!open)} aria-label="Buka menu" data-testid="mobile-menu-button">{open ? <X size={21} /> : <Menu size={21} />}</button></div></header>; }
+function Logo({ light = false }) {
+  return (
+    <Link to="/" className={`brand-mark ${light ? "brand-mark-light" : ""}`} data-testid="brand-logo-link">
+      <img src="/titikjiwa-logo.png" alt="Logo Titikjiwa" className="brand-logo-image" />
+      <span className="brand-symbol brand-symbol-legacy">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="9" opacity="0.35" />
+          <path d="M12 6c-3 0-5 2-5 5 0 2 1.5 3.5 3 4.5 1 0.7 2 1.5 2 2.5" />
+          <path d="M12 6c3 0 5 2 5 5 0 2-1.5 3.5-3 4.5-1 0.7-2 1.5-2 2.5" />
+          <circle cx="12" cy="10" r="1.5" fill="currentColor" />
+        </svg>
+      </span>
+      <span>Titikjiwa</span>
+    </Link>
+  );
+}
 
-function BreathingCard() { const [running, setRunning] = useState(false); const [phase, setPhase] = useState("Tarik napas"); useEffect(() => { if (!running) return undefined; const phases = ["Tarik napas", "Tahan sebentar", "Buang perlahan"]; let index = 0; const timer = setInterval(() => { index = (index + 1) % phases.length; setPhase(phases[index]); }, 4000); return () => clearInterval(timer); }, [running]); return <div className={`breathing-card ${running ? "is-running" : ""}`} data-testid="breathing-card"><div className="breathing-orbit"><span className="breathing-core"><Wind size={22} /></span></div><div className="breathing-copy"><span className="eyebrow">Ritual 60 detik</span><strong data-testid="breathing-phase">{running ? phase : "Berhenti sejenak"}</strong><span>{running ? "Ikuti ritmenya dengan nyaman." : "Satu menit untuk kembali ke saat ini."}</span></div><button className="breathing-toggle" onClick={() => setRunning(!running)} data-testid="breathing-toggle-button">{running ? "Jeda" : "Mulai"}</button></div>; }
+function PublicHeader() {
+  const [open, setOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    setSearchOpen(false);
+    navigate({ to: "/ruang" });
+  };
+
+  return (
+    <header className="public-header" data-testid="public-header">
+      <Logo />
+      <nav id="public-navigation" className={`public-nav ${open ? "public-nav-open" : ""}`} data-testid="public-navigation">
+        <Link to="/" data-testid="nav-home-link">Home</Link>
+        <a href="/#mengapa" data-testid="nav-about-link">Mengapa</a>
+        <Link to="/fitur" data-testid="nav-pesign-link">Fitur</Link>
+        <a href="/#untuk-siapa" data-testid="nav-deperients-link">Untuk siapa</a>
+        <Link to="/ruang" data-testid="nav-products-link">Ruang</Link>
+        <Link to="/kontak" data-testid="nav-contact-link">Kontak</Link>
+      </nav>
+      <div className="header-actions">
+        <Link to="/masuk" className="header-signup-pill" data-testid="header-signup-button">
+          Sign Up
+        </Link>
+        <button
+          type="button"
+          className="header-icon-btn"
+          onClick={() => setSearchOpen(!searchOpen)}
+          aria-label="Cari di titikjiwa"
+          data-testid="header-search-button"
+        >
+          <Search size={18} />
+        </button>
+        <Link
+          to="/masuk"
+          className="header-icon-btn"
+          aria-label="Akun pengguna"
+          data-testid="header-user-button"
+        >
+          <UserRound size={18} />
+        </Link>
+        <button
+          type="button"
+          className="theme-toggle"
+          onClick={toggleTheme}
+          aria-label={theme === "dark" ? "Gunakan mode terang" : "Gunakan mode gelap"}
+          data-testid="theme-toggle-button"
+        >
+          {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
+        </button>
+        <button
+          className="icon-button mobile-menu"
+          onClick={() => setOpen(!open)}
+          aria-label="Buka menu"
+          aria-expanded={open}
+          aria-controls="public-navigation"
+          data-testid="mobile-menu-button"
+        >
+          {open ? <X size={21} /> : <Menu size={21} />}
+        </button>
+      </div>
+
+      {searchOpen && (
+        <div className="header-search-dropdown" data-testid="header-search-dropdown">
+          <form onSubmit={handleSearchSubmit} className="header-search-form">
+            <Search size={16} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Cari topik, jurnal, atau cerita pulih…"
+              autoFocus
+              data-testid="header-search-input"
+            />
+            <button type="button" onClick={() => setSearchOpen(false)} aria-label="Tutup pencarian">
+              <X size={15} />
+            </button>
+          </form>
+        </div>
+      )}
+    </header>
+  );
+}
+
+function BackToTopButton() {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const handleScroll = () => setVisible(window.scrollY > 520);
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+  return (
+    <button type="button" className={`back-to-top ${visible ? "is-visible" : ""}`} onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} aria-label="Kembali ke atas" aria-hidden={!visible} tabIndex={visible ? 0 : -1}>
+      <ArrowUp size={17} />
+      <span>Ke atas</span>
+    </button>
+  );
+}
+
+function BreathingCard() {
+  const [running, setRunning] = useState(false);
+  const [phase, setPhase] = useState("Tarik napas");
+  useEffect(() => {
+    if (!running) return undefined;
+    const phases = ["Tarik napas", "Tahan sebentar", "Buang perlahan"];
+    let index = 0;
+    const timer = setInterval(() => {
+      index = (index + 1) % phases.length;
+      setPhase(phases[index]);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [running]);
+
+  return (
+    <div className={`breathing-card ${running ? "is-running" : ""}`} data-testid="breathing-card">
+      <div className="breathing-orbit">
+        <span className="breathing-core"><Wind size={22} /></span>
+      </div>
+      <div className="breathing-copy">
+        <span className="eyebrow">Ritual 60 detik</span>
+        <strong data-testid="breathing-phase">{running ? phase : "Berhenti sejenak"}</strong>
+        <span>{running ? "Ikuti ritmenya dengan nyaman." : "Satu menit untuk kembali ke saat ini."}</span>
+      </div>
+      <button className="breathing-toggle" onClick={() => setRunning(!running)} data-testid="breathing-toggle-button">
+        {running ? "Jeda" : "Mulai"}
+      </button>
+    </div>
+  );
+}
+
+const MIND_STATES = ["Overthinking", "Burnout", "Dreshing", "Stress", "Calmness"];
 
 function LandingPage() {
-  const [showAll, setShowAll] = useState(false); const pinRef = useRef(null); const lenisRef = useRef(null);
-  useEffect(() => { const lenis = new Lenis({ duration: 1.15, smoothWheel: true }); lenisRef.current = lenis; let raf; const loop = (time) => { lenis.raf(time); raf = requestAnimationFrame(loop); }; raf = requestAnimationFrame(loop); return () => { cancelAnimationFrame(raf); lenis.destroy(); lenisRef.current = null; }; }, []);
-  const scrollTo = (id) => { const el = document.getElementById(id); if (!el) return; if (lenisRef.current) lenisRef.current.scrollTo(el, { offset: -20 }); else el.scrollIntoView({ behavior: "smooth" }); };
-  const { scrollYProgress } = useScroll({ target: pinRef, offset: ["start start", "end start"] });
-  const [handVec, setHandVec] = useState({ tlX: 220, tlY: 110, brX: -318, brY: -66 });
+  const [showAll, setShowAll] = useState(false);
+  const [activeState, setActiveState] = useState("Overthinking");
+  const [pulse, setPulse] = useState(0);
+  const lenisRef = useRef(null);
+  const heroTitleRef = useRef(null);
   useEffect(() => {
-    const calc = () => {
-      const hero = document.querySelector(".hero-canvas");
-      if (!hero) return;
-      const hr = hero.getBoundingClientRect();
-      const W = hr.width;
-      const H = hr.height;
-      const w = Math.min(0.58 * W, 660);
-      setHandVec({
-        tlX: 0.68 * W - 0.781 * w,
-        tlY: 0.6 * H - 0.449 * w,
-        brX: -0.64 * W + 0.565 * w,
-        brY: -0.7 * H + 0.624 * w,
-      });
-    };
-    calc();
-    window.addEventListener("resize", calc);
-    return () => window.removeEventListener("resize", calc);
+    const ctx = gsap.context(() => {
+      gsap.fromTo(".hero-title-letter", { yPercent: 115, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 0.85, stagger: 0.035, ease: "power4.out", delay: 0.12 });
+    }, heroTitleRef);
+    return () => ctx.revert();
   }, []);
-  const handsReach = useTransform(scrollYProgress, [0, 0.42], [0, 1]);
-  const tlX = useTransform(handsReach, (v) => v * handVec.tlX);
-  const tlY = useTransform(handsReach, (v) => v * handVec.tlY);
-  const brX = useTransform(handsReach, (v) => v * handVec.brX);
-  const brY = useTransform(handsReach, (v) => v * handVec.brY);
-  const rippleOpacity = useTransform(scrollYProgress, [0.38, 0.5], [0, 1]);
-  const rippleGrow = useTransform(scrollYProgress, [0.42, 0.88], [0, 1]);
-  const heroOpacity = useTransform(scrollYProgress, [0.58, 0.8], [1, 0]);
-  const heroY = useTransform(scrollYProgress, [0.58, 0.85], [0, -90]);
-  const heroScale = useTransform(scrollYProgress, [0.58, 0.85], [1, 0.94]);
-  const [reach, setReach] = useState(0);
-  const reachX = useMotionValue(0); const reachY = useMotionValue(0);
-  const onMove = (e) => { const r = e.currentTarget.getBoundingClientRect(); const cx = r.left + r.width / 2; const cy = r.top + r.height / 2; const t = Math.max(0, 1 - Math.hypot(e.clientX - cx, e.clientY - cy) / (Math.min(r.width, r.height) * 0.55)); setReach(t); };
-  useEffect(() => { const a = animate(reachX, reach * 52, { type: "spring", stiffness: 80, damping: 15 }); const b = animate(reachY, reach * 40, { type: "spring", stiffness: 80, damping: 15 }); return () => { a.stop(); b.stop(); }; }, [reach, reachX, reachY]);
-  const tlFinalX = useTransform([tlX, reachX], (latest) => latest[0] + latest[1]);
-  const tlFinalY = useTransform([tlY, reachY], (latest) => latest[0] + latest[1]);
-  const brFinalX = useTransform([brX, reachX], (latest) => latest[0] - latest[1]);
-  const brFinalY = useTransform([brY, reachY], (latest) => latest[0] - latest[1]);
-  const handOpacity = useTransform(scrollYProgress, [0.58, 0.82], [1, 0]);
-  return <div className="public-page"><EmergencySOS /><PublicHeader /><main>
-    <div className="hero-pin" ref={pinRef}>
-      <section className="hero-section hero-canvas" onMouseMove={onMove} onMouseLeave={() => setReach(0)} data-testid="hero-section">
-        <div className="hero-bg" aria-hidden="true" />
-        <motion.div className="hand hand-top" style={{ x: tlFinalX, y: tlFinalY, opacity: handOpacity }} aria-hidden="true"><img src={`${process.env.PUBLIC_URL}/hands/hand-top-left.png`} alt="" draggable={false} /></motion.div>
-        <motion.div className="hand hand-bottom" style={{ x: brFinalX, y: brFinalY, opacity: handOpacity }} aria-hidden="true"><img src={`${process.env.PUBLIC_URL}/hands/hand-bottom-right.png`} alt="" draggable={false} /></motion.div>
-        <motion.svg className="hero-ripple" viewBox="0 0 100 120" preserveAspectRatio="none" style={{ opacity: rippleOpacity }} aria-hidden="true"><defs><linearGradient id="heroRippleGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#4a6b5d" stopOpacity="0.85" /><stop offset="0.55" stopColor="#7a8f80" stopOpacity="0.4" /><stop offset="1" stopColor="#c98a66" stopOpacity="0" /></linearGradient></defs><motion.path d="M50,52 C46,62 54,68 50,78 C46,86 54,92 50,100 C48,110 52,116 50,120" fill="none" stroke="url(#heroRippleGrad)" strokeWidth="2.6" strokeLinecap="round" style={{ pathLength: rippleGrow }} /></motion.svg>
-        <motion.div className="hand-touchpoint" style={{ opacity: rippleOpacity, scale: rippleGrow }} aria-hidden="true" />
-        <motion.div className="hero-center" style={{ opacity: heroOpacity, y: heroY, scale: heroScale }}>
-          <div className="eyebrow eyebrow-dark"><span className="eyebrow-dot" /> Ruang aman untuk bertumbuh</div>
-          <h1><span className="line-mask"><motion.span initial={{ y: "112%" }} animate={{ y: 0 }} transition={{ duration: .9, ease: [.22, 1, .36, 1], delay: .12 }}>Pelan-pelan,</motion.span></span><span className="line-mask"><motion.span initial={{ y: "112%" }} animate={{ y: 0 }} transition={{ duration: .9, ease: [.22, 1, .36, 1], delay: .12 }}><em>kembali</em> ke diri</motion.span></span><span className="line-mask"><motion.span initial={{ y: "112%" }} animate={{ y: 0 }} transition={{ duration: .9, ease: [.22, 1, .36, 1], delay: .12 }}>sendiri.</motion.span></span></h1>
-          <p className="hero-lede">Tidak semua luka perlu diceritakan hari ini. titikjiwa hadir untuk menemani kamu memahami pengalaman, mengeluarkannya dengan aman, dan menemukan langkah kecil berikutnya.</p>
-          <div className="hero-actions"><Link to="/masuk" className="button button-primary button-large" data-testid="hero-primary-cta">Mulai ruang pulih <ArrowRight size={17} /></Link><button className="text-button" onClick={() => scrollTo("mengapa")} data-testid="hero-secondary-cta">Kenali titikjiwa <ChevronDown size={16} /></button></div>
-          <div className="hero-proof"><div className="avatar-stack"><span>NA</span><span>RA</span><span>MP</span><span>+</span></div><span>Ruang kecil untuk langkah<br /><strong>yang lebih berarti.</strong></span></div>
-        </motion.div>
-        <motion.div className="hero-ritual" style={{ opacity: heroOpacity, y: heroY }}><BreathingCard /></motion.div>
-      </section>
+
+  useEffect(() => {
+    const timer = setInterval(() => setActiveState((current) => MIND_STATES[(MIND_STATES.indexOf(current) + 1) % MIND_STATES.length]), 3200);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const lenis = new Lenis({ duration: 1.15, smoothWheel: true });
+    lenisRef.current = lenis;
+    let raf;
+    const loop = (time) => {
+      lenis.raf(time);
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => {
+      cancelAnimationFrame(raf);
+      lenis.destroy();
+      lenisRef.current = null;
+    };
+  }, []);
+
+  return (
+    <div className="public-page">
+      <PublicHeader />
+      <main>
+        {/* ================= HERO SECTION ================= */}
+        <section className={`hero-section hero-canvas mind-hero ${pulse ? "is-pulsing" : ""}`} data-testid="hero-section">
+          <div className="hero-bg" aria-hidden="true" />
+          <div className="mind-hero-layout">
+            <motion.div
+              className="mind-hero-copy"
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <span className="hero-eyebrow">Ruang kesehatan mental yang terasa manusiawi</span>
+              <h1 ref={heroTitleRef} className="hero-title mind-title" data-testid="hero-heading-left">{"Temukan Ketenangan Anda".split(" ").map((word, i) => <span className="hero-title-word" key={word}>{word.split("").map((letter, j) => <span className="hero-title-letter" key={`${i}-${j}`}>{letter}</span>)}{i < 2 && <span className="hero-title-space"> </span>}</span>)}</h1>
+              <p className="hero-value">Titikjiwa adalah ruang privat untuk menulis jurnal, berbagi cerita anonim, dan menemukan panduan tepercaya bagi kesehatan mentalmu.</p>
+              <div className="mind-state-wrap" onMouseEnter={() => setActiveState(activeState)} aria-live="polite">
+                <span className="mind-state-kicker">Hari ini terasa seperti</span>
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.button key={activeState} type="button" className="mind-state-pill" onMouseEnter={() => setPulse(1)} onMouseLeave={() => setPulse(0)} initial={{ opacity: 0, scale: 0.78, y: 8 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.78, y: -8 }} transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}>{activeState}<span>↗</span></motion.button>
+                </AnimatePresence>
+              </div>
+              <div className="hero-actions-primary">
+                <Link
+                  to="/masuk"
+                  className="hero-btn-pill hero-btn-primary"
+                  onMouseEnter={() => setPulse(1)}
+                  onMouseLeave={() => setPulse(0)}
+                  data-testid="hero-primary-cta"
+                >
+                  Mulai <ArrowRight size={16} />
+                </Link>
+                <a href="/#mengapa" className="hero-learn-link">Kenali titikjiwa</a>
+              </div>
+              <span className="hero-trust"><ShieldCheck size={15} /> Privat, anonim, dan tanpa penghakiman.</span>
+            </motion.div>
+
+            <motion.div
+              className="mind-hero-visual"
+              initial={{ opacity: 0, scale: 0.94 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
+            >
+              <motion.div className="mind-logo-hero" whileHover={{ scale: 1.035 }} animate={{ scale: pulse ? 1.07 : 1 }} transition={{ type: "spring", stiffness: 120, damping: 15 }} aria-label="Logo Titikjiwa bergerak di dalam pikiran">
+                <div className="mind-logo-halo mind-logo-halo-one" />
+                <div className="mind-logo-halo mind-logo-halo-two" />
+                <svg className="mind-neural-activity" viewBox="0 0 100 100" aria-hidden="true">
+                  <path className="mind-neural-path" d="M18 73 C28 62 29 43 43 39 C55 35 66 45 58 55 C51 64 52 73 72 69" />
+                  <circle className="mind-neural-checkpoint checkpoint-one" cx="18" cy="73" r="2.2" />
+                  <circle className="mind-neural-checkpoint checkpoint-two" cx="43" cy="39" r="2.2" />
+                  <circle className="mind-neural-checkpoint checkpoint-three" cx="72" cy="69" r="2.2" />
+                  <circle className="mind-neural-walker" cx="18" cy="73" r="2.5">
+                    <animateMotion dur="5.8s" repeatCount="indefinite" path="M0 0 C10 -11 11 -30 25 -34 C37 -38 48 -28 40 -18 C33 -9 34 0 54 -4" />
+                  </circle>
+                </svg>
+                <span className="mind-brand-signal mind-brand-signal-a" />
+                <span className="mind-brand-signal mind-brand-signal-b" />
+                <img src="/titikjiwa-logo.png" alt="Logo Titikjiwa" className="mind-logo-hero-image" />
+              </motion.div>
+            </motion.div>
+
+          </div>
+        </section>
+
+        {/* ================= MENGAPA TITIKJIWA ================= */}
+        <section className="intro-section page-container" id="mengapa" data-testid="why-section">
+          <motion.div
+            className="intro-grid"
+            initial={{ opacity: 0, y: 26 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-70px" }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          >
+            <div className="section-copy">
+              <h2>Karena pulih tidak harus <em>sendirian.</em></h2>
+              <p>Setiap orang punya cerita yang membentuknya. Di sini, kamu boleh menyimpannya rapat-rapat sebagai jurnal pribadi, atau membaginya anonim untuk memberi dan menerima dukungan.</p>
+              <div className="intro-actions">
+                <Link to="/masuk" className="button button-primary" data-testid="intro-journal-button">Mulai jurnal pribadi <ArrowRight size={16} /></Link>
+                <Link to="/ruang" className="inline-link" data-testid="intro-stories-link">Baca cerita anonim <ArrowRight size={15} /></Link>
+              </div>
+            </div>
+          </motion.div>
+          <div className="feature-grid">
+            <Feature icon={<LockKeyhole />} number="01" title="Tulis tanpa takut" text="Jurnal pribadi yang hanya bisa kamu lihat. Ruang untuk jujur pada diri sendiri." />
+            <Feature icon={<HeartHandshake />} number="02" title="Ditemani yang mengerti" text="Cerita anonim, dukungan hangat, dan percakapan yang tidak menghakimi." />
+            <Feature icon={<BookOpen />} number="03" title="Temukan langkah" text="Panduan dari psikolog terverifikasi dan direktori bantuan yang mudah dijangkau." />
+          </div>
+        </section>
+
+        {/* ================= STORY / PRINSIP ================= */}
+        <section className="story-section page-container" data-testid="story-section">
+          <motion.div
+            className="story-card"
+            initial={{ opacity: 0, y: 26 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-70px" }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          >
+            <div className="story-quote">“</div>
+            <p>Ruang ini bukan untuk memaksa kita melupakan. Tapi untuk perlahan mengerti apa yang pernah terjadi, dan memilih apa yang ingin kita bawa ke depan.</p>
+            <span>— Prinsip titikjiwa</span>
+          </motion.div>
+          <motion.div
+            className="story-aside"
+            initial={{ opacity: 0, y: 26 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-70px" }}
+            transition={{ duration: 0.6, delay: 0.12, ease: "easeOut" }}
+          >
+            <span className="eyebrow">Yang kamu temukan di sini</span>
+            <ul>
+              <li><Check size={16} /> Bahasa yang manusiawi</li>
+              <li><Check size={16} /> Privasi yang dihormati</li>
+              <li><Check size={16} /> Dukungan yang nyata</li>
+            </ul>
+            <Link to="/masuk" className="inline-link" data-testid="story-cta-link">
+              Masuk ke ruangmu <ArrowRight size={15} />
+            </Link>
+          </motion.div>
+        </section>
+
+        {/* ================= UNTUK SIAPA ================= */}
+        <section className="audience-section" id="untuk-siapa" data-testid="audience-section">
+          <div className="page-container audience-inner">
+            <motion.div
+              initial={{ opacity: 0, y: 26 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-70px" }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+            >
+              <h2>Untuk kamu yang<br /><em>sedang belajar</em> memahami diri.</h2>
+            </motion.div>
+            <div className="audience-list">
+              <AudienceItem title="Yang sedang memulai" text="Ingin punya tempat aman untuk menulis dan menamai apa yang dirasakan." delay={0} />
+              <AudienceItem title="Yang sedang menemani" text="Ingin berbagi pengalaman tanpa mengambil alih proses orang lain." delay={0.1} />
+              <AudienceItem title="Yang ingin bertumbuh" text="Siap menemukan insight baru dengan panduan yang bertanggung jawab." delay={0.2} />
+            </div>
+          </div>
+        </section>
+
+        {/* ================= DARI PARA AHLI ================= */}
+        <section className="articles-preview page-container" data-testid="articles-preview-section">
+          <motion.div
+            className="section-heading"
+            initial={{ opacity: 0, y: 26 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-70px" }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          >
+            <div>
+              <h2>Pengetahuan yang terasa <em>dekat.</em></h2>
+            </div>
+            <button className="text-button" onClick={() => setShowAll(!showAll)} data-testid="articles-toggle-button">
+              {showAll ? "Sembunyikan" : "Lihat semua panduan"} <ArrowRight size={16} />
+            </button>
+          </motion.div>
+          <div className="article-strip">
+            <ArticleTeaser category="REGULASI EMOSI" title="Saat tubuh menyimpan cerita yang belum selesai" color="sage" delay={0} />
+            <ArticleTeaser category="RELASI SEHAT" title="Batasan diri bukan bentuk penolakan" color="clay" delay={0.08} />
+            <ArticleTeaser category="JURNAL" title="Mulai dari satu kalimat yang jujur" color="sand" delay={0.16} />
+          </div>
+          {showAll && <div className="mini-note" data-testid="articles-expanded-note">Panduan lengkap tersedia setelah kamu masuk ke ruang titikjiwa.</div>}
+        </section>
+
+        {/* ================= FINAL CTA ================= */}
+        <section className="final-cta">
+          <motion.div
+            className="page-container final-cta-inner"
+            initial={{ opacity: 0, y: 26 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-70px" }}
+            transition={{ duration: 0.65, ease: "easeOut" }}
+          >
+            <div className="final-cta-copy">
+              <div className="section-kicker">Mulai dari mana saja</div>
+              <h2>Satu langkah kecil<br />bisa mengubah <em>arah.</em></h2>
+              <p>Tulis satu kalimat. Baca satu cerita. Tarik napas. Kamu tidak perlu menyelesaikan semuanya hari ini.</p>
+            </div>
+            <div className="final-cta-action">
+              <Link to="/masuk" className="button button-light button-large" data-testid="final-cta-button">
+                Buka ruang pulih <ArrowRight size={17} />
+              </Link>
+              <span className="final-cta-note">Privat sejak langkah pertama.</span>
+            </div>
+          </motion.div>
+        </section>
+      </main>
+      <BackToTopButton />
+      <InfoFooter />
     </div>
-      <section className="intro-section page-container" id="mengapa" data-testid="why-section"><span className="chapter-number" aria-hidden="true">01</span><div className="section-kicker">01 — Mengapa titikjiwa</div><motion.div className="intro-grid" initial={{ opacity: 0, y: 26 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-70px" }} transition={{ duration: .6, ease: "easeOut" }}><h2>Karena pulih tidak harus <em>sendirian.</em></h2><p>Setiap orang punya cerita yang membentuknya. Di sini, kamu boleh menyimpannya rapat-rapat sebagai jurnal pribadi, atau membaginya anonim untuk memberi dan menerima dukungan.</p></motion.div><div className="feature-grid"><Feature icon={<LockKeyhole />} number="01" title="Tulis tanpa takut" text="Jurnal pribadi yang hanya bisa kamu lihat. Ruang untuk jujur pada diri sendiri." /><Feature icon={<HeartHandshake />} number="02" title="Ditemani yang mengerti" text="Cerita anonim, dukungan hangat, dan percakapan yang tidak menghakimi." /><Feature icon={<BookOpen />} number="03" title="Temukan langkah" text="Panduan dari psikolog terverifikasi dan direktori bantuan yang mudah dijangkau." /></div></section>
-      <section className="story-section page-container" data-testid="story-section"><motion.div className="story-card" initial={{ opacity: 0, y: 26 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-70px" }} transition={{ duration: .6, ease: "easeOut" }}><div className="story-quote">“</div><p>Ruang ini bukan untuk memaksa kita melupakan. Tapi untuk perlahan mengerti apa yang pernah terjadi, dan memilih apa yang ingin kita bawa ke depan.</p><span>— Prinsip titikjiwa</span></motion.div><motion.div className="story-aside" initial={{ opacity: 0, y: 26 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-70px" }} transition={{ duration: .6, delay: .12, ease: "easeOut" }}><span className="eyebrow">Yang kamu temukan di sini</span><ul><li><Check size={16} /> Bahasa yang manusiawi</li><li><Check size={16} /> Privasi yang dihormati</li><li><Check size={16} /> Dukungan yang nyata</li></ul><Link to="/masuk" className="inline-link" data-testid="story-cta-link">Masuk ke ruangmu <ArrowRight size={15} /></Link></motion.div></section>
-      <section className="audience-section" id="untuk-siapa" data-testid="audience-section"><div className="page-container audience-inner"><span className="chapter-number" aria-hidden="true">02</span><motion.div initial={{ opacity: 0, y: 26 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-70px" }} transition={{ duration: .6, ease: "easeOut" }}><div className="section-kicker">02 — Untuk siapa</div><h2>Untuk kamu yang<br /><em>sedang belajar</em> memahami diri.</h2></motion.div><div className="audience-list"><AudienceItem title="Yang sedang memulai" text="Ingin punya tempat aman untuk menulis dan menamai apa yang dirasakan." delay={0} /><AudienceItem title="Yang sedang menemani" text="Ingin berbagi pengalaman tanpa mengambil alih proses orang lain." delay={.1} /><AudienceItem title="Yang ingin bertumbuh" text="Siap menemukan insight baru dengan panduan yang bertanggung jawab." delay={.2} /></div></div></section>
-      <section className="articles-preview page-container" data-testid="articles-preview-section"><span className="chapter-number" aria-hidden="true">03</span><motion.div className="section-heading" initial={{ opacity: 0, y: 26 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-70px" }} transition={{ duration: .6, ease: "easeOut" }}><div><div className="section-kicker">03 — Dari para ahli</div><h2>Pengetahuan yang terasa <em>dekat.</em></h2></div><button className="text-button" onClick={() => setShowAll(!showAll)} data-testid="articles-toggle-button">{showAll ? "Sembunyikan" : "Lihat semua panduan"} <ArrowRight size={16} /></button></motion.div><div className="article-strip"><ArticleTeaser category="REGULASI EMOSI" title="Saat tubuh menyimpan cerita yang belum selesai" color="sage" delay={0} /><ArticleTeaser category="RELASI SEHAT" title="Batasan diri bukan bentuk penolakan" color="clay" delay={.08} /><ArticleTeaser category="JURNAL" title="Mulai dari satu kalimat yang jujur" color="sand" delay={.16} /></div>{showAll && <div className="mini-note" data-testid="articles-expanded-note">Panduan lengkap tersedia setelah kamu masuk ke ruang titikjiwa.</div>}</section>
-      <section className="final-cta"><motion.div className="page-container final-cta-inner" initial={{ opacity: 0, y: 26 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-70px" }} transition={{ duration: .65, ease: "easeOut" }}><div className="section-kicker">Mulai dari mana saja</div><h2>Satu langkah kecil<br />bisa mengubah <em>arah.</em></h2><p>Tulis satu kalimat. Baca satu cerita. Tarik napas. Kamu tidak perlu menyelesaikan semuanya hari ini.</p><Link to="/masuk" className="button button-light button-large" data-testid="final-cta-button">Buka ruang pulih <ArrowRight size={17} /></Link></motion.div></section></main><footer className="site-footer page-container"><Logo /><span>© 2025 titikjiwa. Ruang untuk pulih dengan caramu.</span><Link to="/kontak" className="footer-link" data-testid="footer-contact-link">Kontak</Link><span className="footer-safe"><ShieldCheck size={15} /> Aman & penuh perhatian</span></footer></div>;
+  );
 }
 function Marquee() { const words = ["Ruang aman untuk bercerita", "Jurnal yang hanya milikmu", "Cerita anonim tanpa penghakiman", "Psikolog terverifikasi", "Pulih dengan caramu"]; return <div className="marquee-strip" aria-hidden="true" data-testid="editorial-marquee"><div className="marquee-track">{[0, 1].map((copy) => <div className="marquee-group" key={copy}>{words.map((word) => <span key={word}>{word}<i /></span>)}</div>)}</div></div>; }
-function Feature({ icon, number, title, text }) { return <motion.article className="feature-item" initial={{ opacity: 0, y: 26 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-70px" }} transition={{ duration: .55, delay: parseInt(number, 10) * .09, ease: "easeOut" }}><div className="feature-top"><span className="feature-icon">{icon}</span><span>{number}</span></div><h3>{title}</h3><p>{text}</p></motion.article>; }
+function Feature({ icon, number, title, text }) { return <motion.article className="feature-item" initial={{ opacity: 0, y: 26 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-70px" }} transition={{ duration: .55, delay: parseInt(number, 10) * .09, ease: "easeOut" }}><div className="feature-top"><span className="feature-icon">{icon}</span><span className="feature-number">{number}</span></div><h3>{title}</h3><p>{text}</p></motion.article>; }
 function AudienceItem({ title, text, delay = 0 }) { return <motion.div className="audience-item" initial={{ opacity: 0, y: 22 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-70px" }} transition={{ duration: .55, delay, ease: "easeOut" }}><span className="audience-line" /><div><h3>{title}</h3><p>{text}</p></div></motion.div>; }
 function ArticleTeaser({ category, title, color, delay = 0 }) { return <motion.article className={`article-teaser ${color}`} initial={{ opacity: 0, y: 26 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-70px" }} transition={{ duration: .55, delay, ease: "easeOut" }}><span>{category}</span><h3>{title}</h3><ArrowRight size={17} /></motion.article>; }
 
-function AuthPage() { const { user, login, register } = useAuth(); const navigate = useNavigate(); const [mode, setMode] = useState("login"); const [form, setForm] = useState({ email: "", password: "", alias: "" }); const [busy, setBusy] = useState(false); useEffect(() => { if (user) navigate({ to: "/ruang" }); }, [user, navigate]); const submit = async (event) => { event.preventDefault(); setBusy(true); try { if (mode === "forgot") { await api.post("/auth/forgot-password", { email: form.email }); toast.success("Tautan pemulihan dikirim jika email terdaftar."); setMode("login"); } else { const me = mode === "login" ? await login({ email: form.email, password: form.password }) : await register(form); toast.success(mode === "login" ? "Selamat datang kembali." : "Ruangmu sudah siap."); let interviewed = true; if (me.role === "member") { try { await api.get("/onboarding"); } catch { interviewed = false; } } navigate({ to: interviewed ? "/ruang" : "/wawancara" }); } } catch (error) { toast.error(errorMessage(error)); } finally { setBusy(false); } }; return <div className="auth-page"><div className="auth-visual"><Logo light /><div className="auth-visual-copy"><div className="eyebrow eyebrow-dark"><span className="eyebrow-dot" /> Kamu boleh datang apa adanya</div><h1>Ruang kecil,<br /><em>napas</em> yang lega.</h1><p>Simpan yang ingin kamu simpan. Bagikan yang siap kamu bagikan.</p></div><div className="auth-visual-foot"><ShieldCheck size={16} /> Jurnalmu bersifat pribadi</div></div><div className="auth-panel"><Link to="/" className="back-link" data-testid="auth-back-home-link">← Kembali ke halaman awal</Link><div className="auth-form-wrap"><span className="eyebrow">Ruang titikjiwa</span><h2>{mode === "forgot" ? "Pulihkan aksesmu." : mode === "login" ? "Selamat datang kembali." : "Buat ruang pertamamu."}</h2><p>{mode === "forgot" ? "Masukkan email. Kami kirimkan tautan untuk mengatur ulang kata sandi." : mode === "login" ? "Masuk untuk melanjutkan prosesmu." : "Tidak ada yang harus sempurna untuk memulai."}</p>{mode !== "forgot" && <div className="auth-tabs"><button className={mode === "login" ? "active" : ""} onClick={() => setMode("login")} data-testid="login-mode-button">Masuk</button><button className={mode === "register" ? "active" : ""} onClick={() => setMode("register")} data-testid="register-mode-button">Daftar</button></div>}<form onSubmit={submit} className="auth-form" data-testid="auth-form">{mode === "register" && <label>Nama samaran<Input value={form.alias} onChange={(e) => setForm({ ...form, alias: e.target.value })} placeholder="Misalnya: Langkah Kecil" required data-testid="register-alias-input" /></label>}<label>Email<Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="kamu@email.com" required data-testid="auth-email-input" /></label>{mode !== "forgot" && <label>Kata sandi<Input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Minimal 8 karakter" minLength={8} required data-testid="auth-password-input" /></label>}<button type="submit" className="button button-primary button-full" disabled={busy} data-testid="auth-submit-button">{busy ? "Sebentar…" : mode === "forgot" ? "Kirim tautan pemulihan" : mode === "login" ? "Masuk ke ruang" : "Buat ruang saya"}<ArrowRight size={16} /></button></form>{mode === "login" && <button className="text-button forgot-link" onClick={() => setMode("forgot")} data-testid="forgot-password-link">Lupa kata sandi?</button>}{mode === "forgot" && <button className="text-button forgot-link" onClick={() => setMode("login")} data-testid="back-to-login-button">← Kembali untuk masuk</button>}<p className="auth-note"><LockKeyhole size={14} /> Nama samaran wajib. Email hanya digunakan untuk akses akun.</p></div></div></div>; }
+function CustomCaptcha({ value, onChange }) {
+  const loadChallenge = useCallback(async () => {
+    try {
+      const { data } = await api.get("/auth/captcha");
+      onChange({ id: data.id, question: data.question, answer: "" });
+    } catch { toast.error("Soal CAPTCHA belum bisa dimuat. Coba lagi."); }
+  }, [onChange]);
+  useEffect(() => { loadChallenge(); }, [loadChallenge]);
+  return <div className="custom-captcha" data-testid="custom-captcha"><div className="custom-captcha-head"><span className="eyebrow">Verifikasi singkat</span><button type="button" className="captcha-refresh" onClick={loadChallenge}>Soal baru</button></div><div className="custom-captcha-question">{value.question || "Menyiapkan soal…"}</div><Input value={value.answer} onChange={(event) => onChange({ ...value, answer: event.target.value })} inputMode="numeric" autoComplete="off" placeholder="Jawaban angka" aria-label="Jawaban CAPTCHA" data-testid="captcha-answer-input" /></div>;
+}
 
-function Workspace() { const { loading, user, logout } = useAuth(); const navigate = useNavigate(); const [section, setSection] = useState("beranda"); const [showNotif, setShowNotif] = useState(false); const { data: aura } = useQuery({ queryKey: ["aura"], queryFn: () => api.get("/me/aura").then((r) => r.data), staleTime: 60000 }); const { data: notifications = [], refetch: refetchNotif } = useQuery({ queryKey: ["notifications"], queryFn: () => api.get("/notifications").then((r) => r.data), refetchInterval: 30000 }); const unread = notifications.filter((n) => !n.read).length; const toggleNotif = async () => { const next = !showNotif; setShowNotif(next); if (next && unread > 0) { await api.post("/notifications/read").catch(() => {}); refetchNotif(); } }; useEffect(() => { if (!loading && !user) navigate({ to: "/masuk" }); }, [loading, user, navigate]); if (loading || !user) return <div className="loading-screen" data-testid="workspace-loading">Menyiapkan ruangmu…</div>; const items = user.role === "admin" ? [{ id: "beranda", label: "Beranda", icon: Sparkles }, { id: "moderasi", label: "Moderasi", icon: Flag }, { id: "komunitas", label: "Linimasa", icon: Users }, { id: "teman", label: "Teman AI", icon: Wind }, { id: "belajar", label: "Belajar", icon: BookOpen }, { id: "psikolog", label: "Psikolog", icon: Stethoscope }] : user.role === "psikolog" ? [{ id: "beranda", label: "Beranda", icon: Sparkles }, { id: "konsultasi", label: "Konsultasi masuk", icon: MessageCircle }, { id: "artikel", label: "Tulis artikel", icon: PenLine }, { id: "profil", label: "Profil saya", icon: UserRound }, { id: "teman", label: "Teman AI", icon: Wind }, { id: "komunitas", label: "Linimasa", icon: Users }, { id: "belajar", label: "Belajar", icon: BookOpen }] : [{ id: "beranda", label: "Beranda", icon: Sparkles }, { id: "jurnal", label: "Jurnal pribadi", icon: PenLine }, { id: "komunitas", label: "Linimasa", icon: Users }, { id: "teman", label: "Teman AI", icon: Wind }, { id: "belajar", label: "Belajar", icon: BookOpen }, { id: "psikolog", label: "Psikolog", icon: Stethoscope }]; return <div className="workspace"><aside className="workspace-sidebar"><Logo /><div className="user-chip"><span className="user-avatar" style={aura ? { background: `conic-gradient(from 40deg, ${[...aura.colors, aura.colors[0]].join(", ")})`, color: "#fff" } : {}} title={aura ? `Aura: ${aura.name}` : undefined} data-testid="user-aura-avatar">{user.alias.slice(0, 2).toUpperCase()}</span><div><strong data-testid="current-user-alias">{user.alias}</strong><span>{{ member: "Ruang pribadi", admin: "Admin", psikolog: "Psikolog terverifikasi" }[user.role] || "Ruang pribadi"}</span></div></div><nav className="workspace-nav" data-testid="workspace-navigation">{items.map(({ id, label, icon: Icon }) => <button key={id} className={section === id ? "active" : ""} onClick={() => { setSection(id); setShowNotif(false); }} data-testid={`workspace-nav-${id}-button`}><Icon size={17} />{label}{id === "komunitas" && unread > 0 && <span className="nav-dot" data-testid="nav-notif-dot" />}</button>)}</nav><div className="notif-wrap"><button className="logout-button" onClick={toggleNotif} data-testid="notif-bell-button"><Bell size={16} /> Notifikasi {unread > 0 && <span className="notif-dot" data-testid="notif-count">{unread}</span>}</button>{showNotif && <div className="notif-panel" data-testid="notif-panel">{notifications.length === 0 ? <span className="notif-empty">Belum ada kabar baru. Ceritamu aman di sini.</span> : notifications.map((n) => <div className={`notif-item ${n.read ? "" : "unread"}`} key={n.id}><span>{n.text}</span><time>{new Date(n.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}</time></div>)}</div>}</div><div className="sidebar-safe"><ShieldCheck size={17} /><span>Semua cerita komunitas ditulis anonim.</span></div><button className="logout-button" onClick={async () => { await logout(); navigate({ to: "/" }); }} data-testid="logout-button"><LogOut size={16} /> Keluar</button></aside><main className="workspace-main"><div className="workspace-mobile-head"><Logo /><button className="icon-button" onClick={async () => { await logout(); navigate({ to: "/" }); }} data-testid="mobile-logout-button"><LogOut size={18} /></button></div><WorkspaceContent section={section} user={user} /></main><EmergencySOS /></div>; }
+function AuthPage() { const { user, login, register } = useAuth(); const navigate = useNavigate(); const [mode, setMode] = useState("login"); const [form, setForm] = useState({ email: "", password: "", alias: "" }); const [captcha, setCaptcha] = useState({ id: "", question: "", answer: "" }); const [busy, setBusy] = useState(false); useEffect(() => { if (user) navigate({ to: "/ruang" }); }, [user, navigate]); const submit = async (event) => { event.preventDefault(); if (mode === "register" && (!captcha.id || !captcha.answer.trim())) { toast.error("Jawab CAPTCHA terlebih dahulu."); return; } setBusy(true); try { if (mode === "forgot") { await api.post("/auth/forgot-password", { email: form.email }); toast.success("Tautan pemulihan dikirim jika email terdaftar."); setMode("login"); } else { const me = mode === "login" ? await login({ email: form.email, password: form.password }) : await register({ ...form, captcha_id: captcha.id, captcha_answer: captcha.answer }); toast.success(mode === "login" ? "Selamat datang kembali." : "Ruangmu sudah siap."); let interviewed = true; if (me.role === "member") { try { await api.get("/onboarding"); } catch { interviewed = false; } } navigate({ to: interviewed ? "/ruang" : "/wawancara" }); } } catch (error) { toast.error(errorMessage(error)); } finally { setBusy(false); } }; return <div className="auth-page"><div className="auth-visual"><Logo light /><div className="auth-visual-copy"><div className="eyebrow eyebrow-dark"><span className="eyebrow-dot" /> Kamu boleh datang apa adanya</div><h1>Ruang kecil,<br /><em>napas</em> yang lega.</h1><p>Simpan yang ingin kamu simpan. Bagikan yang siap kamu bagikan.</p></div><div className="auth-visual-foot"><ShieldCheck size={16} /> Jurnalmu bersifat pribadi</div></div><div className="auth-panel"><Link to="/" className="back-link" data-testid="auth-back-home-link">← Kembali ke halaman awal</Link><div className="auth-form-wrap"><span className="eyebrow">Ruang titikjiwa</span><h2>{mode === "forgot" ? "Pulihkan aksesmu." : mode === "login" ? "Selamat datang kembali." : "Buat ruang pertamamu."}</h2><p>{mode === "forgot" ? "Masukkan email. Kami kirimkan tautan untuk mengatur ulang kata sandi." : mode === "login" ? "Masuk untuk melanjutkan prosesmu." : "Tidak ada yang harus sempurna untuk memulai."}</p>{mode !== "forgot" && <div className="auth-tabs"><button className={mode === "login" ? "active" : ""} onClick={() => { setMode("login"); setCaptcha({ id: "", question: "", answer: "" }); }} data-testid="login-mode-button">Masuk</button><button className={mode === "register" ? "active" : ""} onClick={() => setMode("register")} data-testid="register-mode-button">Daftar</button></div>}<form onSubmit={submit} className="auth-form" data-testid="auth-form">{mode === "register" && <label>Nama samaran<Input value={form.alias} onChange={(e) => setForm({ ...form, alias: e.target.value })} placeholder="Misalnya: Langkah Kecil" required data-testid="register-alias-input" /></label>}<label>Email<Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="kamu@email.com" required data-testid="auth-email-input" /></label>{mode !== "forgot" && <label>Kata sandi<Input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Minimal 8 karakter" minLength={8} required data-testid="auth-password-input" /></label>}{mode === "register" && <CustomCaptcha value={captcha} onChange={setCaptcha} />}<button type="submit" className="button button-primary button-full" disabled={busy || (mode === "register" && (!captcha.id || !captcha.answer.trim()))} data-testid="auth-submit-button">{busy ? "Sebentar…" : mode === "forgot" ? "Kirim tautan pemulihan" : mode === "login" ? "Masuk ke ruang" : "Buat ruang saya"}<ArrowRight size={16} /></button></form>{mode === "login" && <button className="text-button forgot-link" onClick={() => setMode("forgot")} data-testid="forgot-password-link">Lupa kata sandi?</button>}{mode === "forgot" && <button className="text-button forgot-link" onClick={() => setMode("login")} data-testid="back-to-login-button">← Kembali untuk masuk</button>}<p className="auth-note"><LockKeyhole size={14} /> Nama samaran wajib. Email hanya digunakan untuk akses akun.</p></div></div></div>; }
+
+function Workspace() { const { loading, user, logout } = useAuth(); const navigate = useNavigate(); const [section, setSection] = useState("beranda"); const [showNotif, setShowNotif] = useState(false); const { data: aura } = useQuery({ queryKey: ["aura"], queryFn: () => api.get("/me/aura").then((r) => r.data), staleTime: 60000 }); const { data: notifications = [], refetch: refetchNotif } = useQuery({ queryKey: ["notifications"], queryFn: () => api.get("/notifications").then((r) => r.data), refetchInterval: 30000 }); const unread = notifications.filter((n) => !n.read).length; const toggleNotif = async () => { const next = !showNotif; setShowNotif(next); if (next && unread > 0) { await api.post("/notifications/read").catch(() => {}); refetchNotif(); } }; useEffect(() => { if (!loading && !user) navigate({ to: "/masuk" }); }, [loading, user, navigate]); if (loading || !user) return <div className="loading-screen" data-testid="workspace-loading">Menyiapkan ruangmu…</div>; const items = user.role === "admin" ? [{ id: "beranda", label: "Beranda", icon: Sparkles }, { id: "moderasi", label: "Moderasi", icon: Flag }, { id: "komunitas", label: "Linimasa", icon: Users }, { id: "teman", label: "Teman AI", icon: Wind }, { id: "belajar", label: "Belajar", icon: BookOpen }, { id: "psikolog", label: "Psikolog", icon: Stethoscope }, { id: "pengguna", label: "Pengguna", icon: UserRound }] : user.role === "psikolog" ? [{ id: "beranda", label: "Beranda", icon: Sparkles }, { id: "konsultasi", label: "Konsultasi masuk", icon: MessageCircle }, { id: "artikel", label: "Tulis artikel", icon: PenLine }, { id: "profil", label: "Profil saya", icon: UserRound }, { id: "teman", label: "Teman AI", icon: Wind }, { id: "komunitas", label: "Linimasa", icon: Users }, { id: "belajar", label: "Belajar", icon: BookOpen }] : [{ id: "beranda", label: "Beranda", icon: Sparkles }, { id: "jurnal", label: "Jurnal pribadi", icon: PenLine }, { id: "komunitas", label: "Linimasa", icon: Users }, { id: "teman", label: "Teman AI", icon: Wind }, { id: "belajar", label: "Belajar", icon: BookOpen }, { id: "psikolog", label: "Psikolog", icon: Stethoscope }]; return <div className="workspace"><aside className="workspace-sidebar"><Logo /><div className="user-chip"><span className="user-avatar" style={aura ? { background: `conic-gradient(from 40deg, ${[...aura.colors, aura.colors[0]].join(", ")})`, color: "#fff" } : {}} title={aura ? `Aura: ${aura.name}` : undefined} data-testid="user-aura-avatar">{user.alias.slice(0, 2).toUpperCase()}</span><div><strong data-testid="current-user-alias">{user.alias}</strong><span>{{ member: "Ruang pribadi", admin: "Admin", psikolog: "Psikolog terverifikasi" }[user.role] || "Ruang pribadi"}</span></div></div><nav className="workspace-nav" data-testid="workspace-navigation">{items.map(({ id, label, icon: Icon }) => <button key={id} className={section === id ? "active" : ""} onClick={() => { setSection(id); setShowNotif(false); }} data-testid={`workspace-nav-${id}-button`}><Icon size={17} />{label}{id === "komunitas" && unread > 0 && <span className="nav-dot" data-testid="nav-notif-dot" />}</button>)}</nav><div className="notif-wrap"><button className="logout-button" onClick={toggleNotif} data-testid="notif-bell-button"><Bell size={16} /> Notifikasi {unread > 0 && <span className="notif-dot" data-testid="notif-count">{unread}</span>}</button>{showNotif && <div className="notif-panel" data-testid="notif-panel">{notifications.length === 0 ? <span className="notif-empty">Belum ada kabar baru. Ceritamu aman di sini.</span> : notifications.map((n) => <div className={`notif-item ${n.read ? "" : "unread"}`} key={n.id}><span>{n.text}</span><time>{new Date(n.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}</time></div>)}</div>}</div><div className="sidebar-safe"><ShieldCheck size={17} /><span>Semua cerita komunitas ditulis anonim.</span></div><button className="logout-button" onClick={async () => { await logout(); navigate({ to: "/" }); }} data-testid="logout-button"><LogOut size={16} /> Keluar</button></aside><main className="workspace-main"><div className="workspace-mobile-head"><Logo /><button className="icon-button" onClick={async () => { await logout(); navigate({ to: "/" }); }} data-testid="mobile-logout-button"><LogOut size={18} /></button></div><WorkspaceContent section={section} user={user} /></main><EmergencySOS /><BackToTopButton /></div>; }
 function WorkspaceHeading({ eyebrow, title, text, action }) { return <div className="workspace-heading"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><p>{text}</p></div>{action}</div>; }
-function WorkspaceContent({ section, user }) { if (section === "jurnal") return <JournalView />; if (section === "komunitas") return <CommunityView />; if (section === "belajar") return <LearningView />; if (section === "psikolog") return <PsychologistView />; if (section === "moderasi" && user.role === "admin") return <AdminView />; if (section === "konsultasi") return <ConsultationInbox />; if (section === "teman") return <AiCompanion />; if (section === "profil") return <PsychologistProfile user={user} />; if (section === "artikel") return <div className="workspace-content"><WorkspaceHeading eyebrow="Ruang menulis" title="Tulis panduan untuk semua." text="Bagikan insight profesionalmu dengan bahasa yang manusiawi." /><ArticleComposer /></div>; return user.role === "admin" ? <AdminHome /> : user.role === "psikolog" ? <PsychologistHome user={user} /> : <HomeWorkspace user={user} />; }
+function WorkspaceContent({ section, user }) { if (section === "jurnal") return <JournalView />; if (section === "komunitas") return <CommunityView />; if (section === "belajar") return <LearningView />; if (section === "psikolog") return <PsychologistView />; if (section === "pengguna" && user.role === "admin") return <AdminUsers />; if (section === "moderasi" && user.role === "admin") return <AdminView />; if (section === "konsultasi") return <ConsultationInbox />; if (section === "teman") return <AiCompanion />; if (section === "profil") return <PsychologistProfile user={user} />; if (section === "artikel") return <div className="workspace-content"><WorkspaceHeading eyebrow="Ruang menulis" title="Tulis panduan untuk semua." text="Bagikan insight profesionalmu dengan bahasa yang manusiawi." /><ArticleComposer /></div>; return user.role === "admin" ? <AdminHome /> : user.role === "psikolog" ? <PsychologistHome user={user} /> : <HomeWorkspace user={user} />; }
 function HomeWorkspace({ user }) { const { data: aura } = useQuery({ queryKey: ["aura"], queryFn: () => api.get("/me/aura").then((r) => r.data) }); return <div className="workspace-content"><div className="aura-card" data-testid="aura-card">{aura && <><span className="aura-blob" style={{ background: `conic-gradient(from 40deg, ${[...aura.colors, aura.colors[0]].join(", ")})` }} data-testid="aura-blob" /><div className="aura-copy"><span className="eyebrow">Hai, {user.alias}</span><h2>{aura.last_seen ? `Kamu terakhir ke sini ${aura.last_seen}.` : "Senang bertemu untuk pertama kali."}</h2><p data-testid="aura-description">Auramu saat ini <strong data-testid="aura-name">{aura.name}</strong> — {aura.description} Semoga sehat dan semangat selalu ya.</p><button type="button" className="button button-outline aura-download" onClick={() => downloadAuraCard(aura, user.alias)} data-testid="aura-download-button"><Download size={15} /> Unduh kartu aura</button></div></>}</div><WorkspaceHeading eyebrow="Ruang harianmu" title="Apa yang ingin kamu rawat hari ini?" text="Tidak perlu buru-buru. Pilih ruang yang terasa paling ringan untukmu." /><div className="home-grid"><button className="home-card home-card-journal" onClick={() => document.querySelector('[data-testid="workspace-nav-jurnal-button"]')?.click()} data-testid="home-journal-card"><span className="card-icon"><PenLine size={21} /></span><span className="card-label">Ruang jurnal</span><h2>Tulis yang belum sempat terucap.</h2><span className="card-action">Buka jurnal <ArrowRight size={15} /></span></button><button className="home-card home-card-community" onClick={() => document.querySelector('[data-testid="workspace-nav-komunitas-button"]')?.click()} data-testid="home-community-card"><span className="card-icon"><HeartHandshake size={21} /></span><span className="card-label">Ruang komunitas</span><h2>Temukan cerita yang membuatmu merasa dipahami.</h2><span className="card-action">Lihat cerita <ArrowRight size={15} /></span></button></div><div className="home-lower"><div className="daily-prompt"><span className="eyebrow">Pertanyaan hari ini</span><h3>{todayPrompt}</h3><button className="text-button" onClick={() => document.querySelector('[data-testid="workspace-nav-jurnal-button"]')?.click()} data-testid="daily-prompt-button">Jawab di jurnal <ArrowRight size={15} /></button></div><div className="safe-callout"><CircleAlert size={20} /><div><strong>Jika kamu sedang dalam bahaya</strong><p>Hubungi layanan darurat setempat atau orang yang kamu percaya. titikjiwa bukan pengganti bantuan profesional.</p></div></div></div></div>; }
 
 function AuraTimeline() { const { data: history = [] } = useQuery({ queryKey: ["aura-history"], queryFn: () => api.get("/me/aura/history").then((r) => r.data) }); if (history.length === 0) return null; return <div className="aura-timeline" data-testid="aura-timeline"><span className="eyebrow">Perjalanan auramu dari minggu ke minggu</span><div className="aura-track">{[...history].reverse().map((item) => <div className="aura-point" key={item.week_key} data-testid={`aura-point-${item.week_key}`}><span className="aura-dot" style={{ background: `conic-gradient(from 40deg, ${[...item.colors, item.colors[0]].join(", ")})` }} /><time>{weekLabel(item.week_key)}</time><strong>{item.name}</strong></div>)}</div></div>; }
@@ -157,9 +506,10 @@ function PsychologistProfile({ user }) { const queryClient = useQueryClient(); c
 
 function AdminPsychologists() { const queryClient = useQueryClient(); const blank = { name: "", email: "", password: "", specialty: "", availability: "", city: "Online", bio: "" }; const [form, setForm] = useState(blank); const [open, setOpen] = useState(false); const { data: list = [], isLoading } = useQuery({ queryKey: ["admin-psychologists"], queryFn: () => api.get("/admin/psychologists").then((r) => r.data) }); const toggle = useMutation({ mutationFn: (id) => api.post(`/admin/psychologists/${id}/toggle`), onSuccess: ({ data }) => { queryClient.invalidateQueries({ queryKey: ["admin-psychologists"] }); queryClient.invalidateQueries({ queryKey: ["psychologists"] }); toast.success(data.active ? "Akun psikolog diaktifkan kembali." : "Akun psikolog dinonaktifkan."); }, onError: (e) => toast.error(errorMessage(e)) }); const create = useMutation({ mutationFn: () => api.post("/admin/psychologists", form), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-psychologists"] }); queryClient.invalidateQueries({ queryKey: ["psychologists"] }); setForm(blank); setOpen(false); toast.success("Psikolog baru ditambahkan dan akunnya aktif."); }, onError: (e) => toast.error(errorMessage(e)) }); return <div data-testid="admin-psychologists"><div className="admin-psy-head"><span className="community-count" data-testid="psychologist-count">{list.length} psikolog terdaftar</span><button className="button button-primary" onClick={() => setOpen(!open)} data-testid="add-psychologist-button"><Plus size={16} /> Tambah psikolog</button></div>{open && <form className="composer-card" onSubmit={(e) => { e.preventDefault(); create.mutate(); }} data-testid="psychologist-form"><div className="composer-heading"><div><span className="eyebrow">Psikolog baru</span><h2>Akun dan profil langsung aktif.</h2></div></div><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Nama lengkap dan gelar" required data-testid="psy-name-input" /><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Email untuk masuk" required data-testid="psy-email-input" /><Input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Kata sandi awal (min. 8 karakter)" minLength={8} required data-testid="psy-password-input" /><Input value={form.specialty} onChange={(e) => setForm({ ...form, specialty: e.target.value })} placeholder="Spesialisasi, mis. Trauma & regulasi emosi" required data-testid="psy-specialty-input" /><Input value={form.availability} onChange={(e) => setForm({ ...form, availability: e.target.value })} placeholder="Jadwal, mis. Senin–Kamis" required data-testid="psy-availability-input" /><Textarea value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} placeholder="Bio singkat yang menenangkan…" rows={3} required data-testid="psy-bio-input" /><button className="button button-primary" disabled={create.isPending} data-testid="create-psychologist-button">{create.isPending ? "Menambahkan…" : "Tambahkan psikolog"}<Plus size={15} /></button></form>}<div className="report-list">{isLoading ? <div className="empty-state">Memuat daftar…</div> : list.map((psy) => <article className="report-card" key={psy.id} data-testid={`admin-psy-${psy.id}`}><div className="report-card-head"><span className="eyebrow">{psy.specialty}</span><span className={`status-badge ${psy.active === false ? "rejected" : "confirmed"}`} data-testid={`psy-status-${psy.id}`}>{psy.active === false ? "Nonaktif" : "Aktif"}</span></div><h3>{psy.name}</h3><p>{psy.bio}</p><span className="report-meta">{psy.availability} · {psy.city}</span><div className="report-actions"><button className={psy.active === false ? "button button-outline" : "text-button"} onClick={() => toggle.mutate(psy.id)} disabled={toggle.isPending} data-testid={`toggle-psy-${psy.id}-button`}>{psy.active === false ? "Aktifkan kembali" : "Nonaktifkan akun"}</button></div></article>)}</div></div>; }
 
+function AdminUsers() { const queryClient = useQueryClient(); const { user: me } = useAuth(); const [q, setQ] = useState(""); const [roleFilter, setRoleFilter] = useState("semua"); const { data: users = [], isLoading } = useQuery({ queryKey: ["admin-users"], queryFn: () => api.get("/admin/users").then((r) => r.data) }); const update = useMutation({ mutationFn: ({ id, patch: body }) => api.patch(`/admin/users/${id}`, body), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-users"] }); queryClient.invalidateQueries({ queryKey: ["admin-stats"] }); toast.success("Data pengguna diperbarui."); }, onError: (e) => toast.error(errorMessage(e)) }); const resetPw = useMutation({ mutationFn: ({ id, password }) => api.post(`/admin/users/${id}/reset-password`, { password }), onSuccess: () => toast.success("Kata sandi pengguna diatur ulang."), onError: (e) => toast.error(errorMessage(e)) }); const remove = useMutation({ mutationFn: (id) => api.delete(`/admin/users/${id}`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-users"] }); queryClient.invalidateQueries({ queryKey: ["admin-stats"] }); toast.success("Pengguna beserta datanya dihapus."); }, onError: (e) => toast.error(errorMessage(e)) }); const filtered = users.filter((u) => (roleFilter === "semua" || u.role === roleFilter) && (!q || u.email.toLowerCase().includes(q.toLowerCase()) || (u.alias || "").toLowerCase().includes(q.toLowerCase()))); return <div className="workspace-content" data-testid="admin-users"><WorkspaceHeading eyebrow="Ruang admin" title="Kelola pengguna." text="Tinjau akun, ubah peran, atau hapus pengguna beserta datanya." /><div className="user-toolbar"><div className="search-box"><Search size={15} /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Cari email atau nama…" data-testid="user-search-input" /></div><div className="auth-tabs admin-tabs"><button className={roleFilter === "semua" ? "active" : ""} onClick={() => setRoleFilter("semua")} data-testid="user-filter-all">Semua ({users.length})</button><button className={roleFilter === "member" ? "active" : ""} onClick={() => setRoleFilter("member")} data-testid="user-filter-member">Member</button><button className={roleFilter === "psikolog" ? "active" : ""} onClick={() => setRoleFilter("psikolog")} data-testid="user-filter-psikolog">Psikolog</button><button className={roleFilter === "admin" ? "active" : ""} onClick={() => setRoleFilter("admin")} data-testid="user-filter-admin">Admin</button></div></div><div className="report-list">{isLoading ? <div className="empty-state">Memuat daftar…</div> : filtered.length === 0 ? <div className="empty-state" data-testid="admin-no-users"><UserRound size={24} /><strong>Tidak ada pengguna.</strong><span>Belum ada akun yang cocok dengan pencarianmu.</span></div> : filtered.map((u) => <article className="report-card user-row" key={u.id} data-testid={`admin-user-${u.id}`}><div className="user-main"><span className="user-avatar">{u.alias ? u.alias.slice(0, 2).toUpperCase() : ".."}</span><div><strong data-testid={`user-alias-${u.id}`}>{u.alias}{u.id === me?.id && <span className="psy-badge">Kamu</span>}</strong><span>{u.email}</span><time>Bergabung {u.created_at ? new Date(u.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "—"}</time></div></div><div className="user-controls"><select value={u.role} onChange={(e) => update.mutate({ id: u.id, patch: { role: e.target.value } })} disabled={u.id === me?.id} data-testid={`role-select-${u.id}`}><option value="member">Member</option><option value="psikolog">Psikolog</option><option value="admin">Admin</option></select><span className={`status-badge ${u.disabled ? "rejected" : "confirmed"}`} data-testid={`user-status-${u.id}`}>{u.disabled ? "Nonaktif" : "Aktif"}</span><button className="text-button" onClick={() => { const pw = window.prompt("Kata sandi baru (min. 8 karakter):"); if (pw && pw.length >= 8) resetPw.mutate({ id: u.id, password: pw }); else if (pw) toast.error("Kata sandi minimal 8 karakter."); }} disabled={resetPw.isPending} data-testid={`reset-pw-${u.id}-button`}>Atur kata sandi</button><button className="text-button danger-text" onClick={() => { if (window.confirm(`Hapus akun ${u.email} beserta seluruh datanya (jurnal, notifikasi, riwayat)? Tindakan ini tidak bisa dibatalkan.`)) remove.mutate(u.id); }} disabled={remove.isPending || u.id === me?.id} data-testid={`delete-user-${u.id}-button`}><X size={14} /> Hapus</button></div></article>)}</div></div>; }
 function AdminView() { const queryClient = useQueryClient(); const [tab, setTab] = useState("laporan"); const { data: reports = [], isLoading } = useQuery({ queryKey: ["admin-reports"], queryFn: () => api.get("/admin/reports").then((r) => r.data) }); const dismiss = useMutation({ mutationFn: (id) => api.post(`/admin/reports/${id}/dismiss`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-reports"] }); toast.success("Laporan diabaikan."); }, onError: (e) => toast.error(errorMessage(e)) }); const removePost = useMutation({ mutationFn: (postId) => api.delete(`/admin/posts/${postId}`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-reports"] }); queryClient.invalidateQueries({ queryKey: ["posts"] }); toast.success("Cerita dihapus dari ruang komunitas."); }, onError: (e) => toast.error(errorMessage(e)) }); return <div className="workspace-content" data-testid="admin-dashboard"><WorkspaceHeading eyebrow="Ruang admin" title="Jaga ruang ini tetap aman." text="Tinjau laporan komunitas dan terbitkan panduan baru untuk semua pengguna." /><div className="auth-tabs admin-tabs"><button className={tab === "laporan" ? "active" : ""} onClick={() => setTab("laporan")} data-testid="admin-tab-reports-button">Laporan ({reports.length})</button><button className={tab === "artikel" ? "active" : ""} onClick={() => setTab("artikel")} data-testid="admin-tab-article-button">Terbitkan artikel</button><button className={tab === "psikolog" ? "active" : ""} onClick={() => setTab("psikolog")} data-testid="admin-tab-psychologists-button">Psikolog</button></div>{tab === "laporan" ? <div className="report-list" data-testid="admin-report-list">{isLoading ? <div className="empty-state">Memuat laporan…</div> : reports.length === 0 ? <div className="empty-state" data-testid="admin-no-reports"><ShieldCheck size={24} /><strong>Tidak ada laporan aktif.</strong><span>Ruang komunitas sedang tertata dengan baik.</span></div> : reports.map((report) => <article className="report-card" key={report.id} data-testid={`report-card-${report.id}`}><div className="report-card-head"><span className="eyebrow">Laporan cerita</span><time>{new Date(report.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "long" })}</time></div>{report.post ? <><h3>{report.post.title}</h3><p>{report.post.body}</p><span className="report-meta">Ditulis oleh {report.post.alias} · topik {report.post.topic}</span></> : <p className="report-meta">Cerita asli sudah tidak tersedia.</p>}<div className="report-actions">{report.post && <button className="button button-outline" onClick={() => removePost.mutate(report.post_id)} disabled={removePost.isPending} data-testid={`remove-post-${report.id}-button`}><X size={15} /> Hapus cerita</button>}<button className="text-button" onClick={() => dismiss.mutate(report.id)} disabled={dismiss.isPending} data-testid={`dismiss-report-${report.id}-button`}>Abaikan laporan</button></div></article>)}</div> : tab === "artikel" ? <ArticleComposer /> : <AdminPsychologists />}</div>; }
 
-function InfoFooter() { return <footer className="site-footer" data-testid="info-footer"><div className="page-container footer-grid"><div><Logo light /><p>Ruang yang lahir dari keyakinan bahwa pulih adalah hak semua orang.</p></div><div><h4>Ruang</h4><a href="#mengapa">Kenapa titikjiwa</a><a href="#untuk-siapa">Untuk siapa</a><Link to="/fitur">Fitur</Link></div><div><h4>Sumber daya</h4><a href="#panduan">Panduan psikolog</a><Link to="/tutorial">Tutorial</Link></div><div><h4>Perusahaan</h4><Link to="/privasi">Privasi</Link><Link to="/syarat">Ketentuan</Link><Link to="/kontak">Kontak</Link><Link to="/tutorial">Tutorial</Link><Link to="/fitur">Fitur</Link></div></div><div className="footer-note">Dibuat dengan kehati-hatian. © 2026 titikjiwa.</div></footer>; }
+function InfoFooter() { return <footer className="site-footer" data-testid="info-footer"><div className="page-container footer-inner"><p className="footer-line">Pulih dengan caramu. Pelan-pelan.</p><div className="footer-grid"><div className="footer-brand"><Logo /><p>Ruang yang lahir dari keyakinan bahwa pulih adalah hak semua orang.</p></div><div><h4>Ruang</h4><a href="/#mengapa">Kenapa titikjiwa</a><a href="/#untuk-siapa">Untuk siapa</a><Link to="/fitur">Fitur</Link></div><div><h4>Sumber daya</h4><Link to="/tutorial">Tutorial</Link><Link to="/kontak" className="footer-link" data-testid="footer-contact-link">Kontak</Link></div><div><h4>Perusahaan</h4><Link to="/privasi">Privasi</Link><Link to="/syarat">Ketentuan</Link></div></div><div className="footer-meta"><span className="footer-safe"><ShieldCheck size={15} /> Aman &amp; penuh perhatian</span><span>© 2026 titikjiwa · <span className="footer-version" data-testid="footer-version" aria-label={`Versi aplikasi ${APP_VERSION}`}>Versi {APP_VERSION}</span></span></div></div></footer>; }
 
 function KontakPage() { const [form, setForm] = useState({ name: "", email: "", message: "" }); const [busy, setBusy] = useState(false); const submit = (event) => { event.preventDefault(); setBusy(true); setTimeout(() => { setBusy(false); setForm({ name: "", email: "", message: "" }); toast.success("Pesanmu terkirim. Kami membalas pelan-pelan — maksimal 2 hari kerja."); }, 650); }; return <div className="public-page"><PublicHeader /><main className="info-page page-container" data-testid="contact-page"><motion.div className="info-hero" initial={{ opacity: 0, y: 26 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .6, ease: "easeOut" }}><span className="eyebrow">Kontak</span><h1>Kamu boleh mengetuk, <em>pelan-pelan.</em></h1><p>Punya pertanyaan, masukan, atau butuh bantuan teknis? Tulis pesan — tim kami membacanya dengan hati-hati.</p></motion.div><div className="contact-grid" data-testid="contact-grid"><div className="contact-info"><div className="contact-card"><span className="eyebrow">Email</span><a href="mailto:halo@titikjiwa.id" data-testid="contact-email-link">halo@titikjiwa.id</a><span>Untuk pertanyaan umum dan kemitraan.</span></div><div className="contact-card"><span className="eyebrow">Situasi darurat</span><a href="tel:112" data-testid="contact-emergency-link">112</a><span>Jika keselamatanmu atau orang lain terancam, hubungi segera — jangan menunggu balasan di sini.</span></div><div className="contact-card"><span className="eyebrow">Jam respons</span><strong>Senin–Jumat, 09.00–17.00 WIB</strong><span>Pesan di luar jam dibalas pada hari kerja berikutnya.</span></div></div><form className="composer-card contact-form" onSubmit={submit} data-testid="contact-form"><div className="composer-heading"><div><span className="eyebrow">Tulis pesan</span><h2>Ceritakan yang ingin kamu sampaikan.</h2></div></div><label>Nama<Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Nama panggilanmu" required data-testid="contact-name-input" /></label><label>Email<Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="email@contoh.com" required data-testid="contact-email-input" /></label><label>Pesan<Textarea value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder="Tulis dengan tenang…" rows={5} required data-testid="contact-message-input" /></label><button className="button button-primary" disabled={busy} data-testid="contact-submit-button">{busy ? "Mengirim…" : "Kirim pesan"}<Send size={15} /></button></form></div><div className="info-cta"><Link to="/masuk" className="button button-primary" data-testid="contact-cta-button">Kembali ke ruang pulih <ArrowRight size={16} /></Link></div></main><InfoFooter /></div>; }
 
@@ -175,7 +525,7 @@ function TermsPage() { return <InfoPage eyebrow="Syarat & Ketentuan" title="Atur
 
 function EmergencySOS() { const { user } = useAuth(); const [open, setOpen] = useState(false); const [form, setForm] = useState({ name: "", phone: "" }); const [saving, setSaving] = useState(false); const [contact, setContact] = useState(null); useEffect(() => { const openPanel = () => setOpen(true); window.addEventListener("titikjiwa:open-sos", openPanel); return () => window.removeEventListener("titikjiwa:open-sos", openPanel); }, []); const [plan, setPlan] = useState({ signs: "", strategies: "", helpers: "" }); const [planSaved, setPlanSaved] = useState(false); const [planBusy, setPlanBusy] = useState(false); useEffect(() => { if (user) { api.get("/emergency-contact").then((r) => setContact(r.data)).catch(() => {}); api.get("/safety-plan").then((r) => { setPlan(r.data); setPlanSaved(true); }).catch(() => {}); } }, [user]); const savePlan = async (e) => { e.preventDefault(); setPlanBusy(true); try { const { data } = await api.post("/safety-plan", plan); setPlan(data); setPlanSaved(true); toast.success("Rencana amanmu tersimpan."); } catch (err) { toast.error(errorMessage(err)); } finally { setPlanBusy(false); } }; const contacts = [["SAPA 129", "KemenPPPA — perlindungan perempuan & anak", "tel:129"], ["1500-771", "Kemensos — layanan & pengaduan sosial", "tel:1500771"], ["1500-567", "Halo Kemenkes — informasi kesehatan", "tel:1500567"], ["1500-454", "Konsultasi kesehatan jiwa", "tel:1500454"]]; const saveContact = async (e) => { e.preventDefault(); setSaving(true); try { const { data } = await api.post("/emergency-contact", form); setContact(data); toast.success("Kontak kepercayaanmu tersimpan."); } catch (err) { toast.error(errorMessage(err)); } finally { setSaving(false); } }; return <><button type="button" className="sos-button" onClick={() => setOpen(true)} data-testid="sos-button" aria-label="Bantuan darurat"><CircleAlert size={17} /> SOS</button>{open && <div className="sos-overlay" onClick={() => setOpen(false)} data-testid="sos-overlay"><motion.div className="sos-panel" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .35, ease: "easeOut" }} onClick={(e) => e.stopPropagation()}><div className="sos-head"><div><span className="eyebrow">Bantuan darurat</span><h2>Kamu tidak sendirian.</h2></div><button className="icon-button" onClick={() => setOpen(false)} data-testid="sos-close-button"><X size={18} /></button></div><p className="sos-lede">Jika keselamatanmu atau orang lain terancam, hubungi sekarang — jangan menunggu balasan di sini.</p><div className="sos-primary"><a href="tel:112" className="sos-call sos-call-main" data-testid="sos-call-112"><strong>112</strong><span>Darurat nasional</span></a><a href="tel:110" className="sos-call" data-testid="sos-call-110"><strong>110</strong><span>Kepolisian</span></a><a href="tel:119" className="sos-call" data-testid="sos-call-119"><strong>119</strong><span>Ambulans · jiwa ext. 8</span></a></div>{user && <><span className="eyebrow">Kontak kepercayaanmu</span>{contact ? <a href={`tel:${contact.phone}`} className="sos-contact sos-trusted" data-testid="sos-trusted-contact"><strong>{contact.name}</strong><span>{contact.phone} — orang yang kamu percaya</span></a> : <form className="sos-trusted-form" onSubmit={saveContact} data-testid="trusted-contact-form"><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Nama panggilannya" required data-testid="trusted-name-input" /><input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Nomor telepon" required data-testid="trusted-phone-input" /><button className="button button-outline" disabled={saving} data-testid="trusted-save-button">{saving ? "Menyimpan…" : "Simpan"}</button></form>}</>}{user && <><span className="eyebrow" style={{ marginTop: 20, display: "block" }}>Rencana amanku</span>{planSaved ? <div className="safety-plan" data-testid="safety-plan-view"><p><strong>Saat aku mulai goyah:</strong> {plan.signs}</p><p><strong>Yang menenangkanku:</strong> {plan.strategies}</p><p><strong>Orang & tempat penolongku:</strong> {plan.helpers}</p><button type="button" className="text-button" onClick={() => setPlanSaved(false)} data-testid="edit-plan-button">Ubah rencana</button></div> : <form className="safety-plan-form" onSubmit={savePlan} data-testid="safety-plan-form"><input value={plan.signs} onChange={(e) => setPlan({ ...plan, signs: e.target.value })} placeholder="Tanda bahaya: apa yang biasanya muncul duluan?" required data-testid="plan-signs-input" /><input value={plan.strategies} onChange={(e) => setPlan({ ...plan, strategies: e.target.value })} placeholder="Strategi menenangkan: napas, jalan kaki, musik…" required data-testid="plan-strategies-input" /><input value={plan.helpers} onChange={(e) => setPlan({ ...plan, helpers: e.target.value })} placeholder="Daftar penolong: orang & tempat yang aman" required data-testid="plan-helpers-input" /><button className="button button-outline" disabled={planBusy} data-testid="save-plan-button">{planBusy ? "Menyimpan…" : "Simpan rencana aman"}</button></form>}</>}<span className="eyebrow" style={{ marginTop: 20, display: "block" }}>Layanan terkait</span><div className="sos-list">{contacts.map(([number, label, href]) => <a key={number} href={href} className="sos-contact" data-testid={`sos-contact-${number}`}><strong>{number}</strong><span>{label}</span></a>)}</div><p className="sos-note">Semua layanan gratis. Ketersediaan dapat berbeda di tiap wilayah — jika satu tidak tersambung, coba yang lain.</p></motion.div></div>}</>; }
 
-function Root() { return <MotionConfig reducedMotion="user"><AuthProvider><Outlet /><Toaster position="top-right" richColors /></AuthProvider></MotionConfig>; }
+function Root() { return <ThemeProvider><MotionConfig reducedMotion="user"><AuthProvider><Outlet /><Toaster position="top-right" richColors /></AuthProvider></MotionConfig></ThemeProvider>; }
 const rootRoute = createRootRoute({ component: Root });
 const indexRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", component: LandingPage });
 const authRoute = createRoute({ getParentRoute: () => rootRoute, path: "/masuk", component: AuthPage });
