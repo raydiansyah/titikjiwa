@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/raydiansyah/titikjiwa/compare/v1.5.0...v1.6.0) (2026-08-22)
+
+
+### Features
+
+* harden auth and refine interactive branding ([9b18e4a](https://github.com/raydiansyah/titikjiwa/commit/9b18e4a21aff2732bd7479b245d965ccc054392e))
+
 # [1.5.0](https://github.com/raydiansyah/titikjiwa/compare/v1.4.0...v1.5.0) (2026-08-20)
 
 
