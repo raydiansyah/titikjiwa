@@ -5,13 +5,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { todayPrompt } from "@/features/wellness/prompts";
 import { useAuraHistory, useCreateJournal, useGenerateWeeklyInsight, useJournals, useWeeklyInsights } from "./hooks";
+import { WorkspaceHeading } from "@/features/workspace/WorkspaceHeading";
 
 const MOODS = [["Tenang", "#4a6b5d"], ["Berharap", "#c98a66"], ["Bingung", "#c2a686"], ["Berat", "#8a6d5c"], ["Netral", "#d8d2c8"]];
 
 function isoWeekKey(date) { const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())); const day = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() - day + 3); const first = new Date(Date.UTC(d.getUTCFullYear(), 0, 4)); const firstDay = (first.getUTCDay() + 6) % 7; first.setUTCDate(first.getUTCDate() - firstDay + 3); const week = 1 + Math.round((d.getTime() - first.getTime()) / 604800000); return `${d.getUTCFullYear()}-W${String(week).padStart(2, "0")}`; }
 function weekLabel(key) { const [year, week] = key.split("-W"); return `Minggu ${Number(week)} · ${year}`; }
 
-function WorkspaceHeading({ eyebrow, title, text, action }) { return <div className="workspace-heading"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><p>{text}</p></div>{action}</div>; }
 
 function MoodRecap({ journals }) {
   const weeks = [];

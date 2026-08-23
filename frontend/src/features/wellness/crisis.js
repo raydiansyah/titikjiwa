@@ -1,0 +1,1 @@
+export const CRISIS_PATTERN = /bunuh diri|ingin mati|pengen mati|mengakhiri hidup|akhiri hidup|menyakiti diri|melukai diri|self.?harm|sayat|gantung diri|tidak (ingin|mau) hidup|lebih baik (aku|saya) (mati|tidak ada)/i;

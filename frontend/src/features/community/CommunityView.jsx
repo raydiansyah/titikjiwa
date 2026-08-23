@@ -5,10 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useCommunityPosts, useCreateComment, useCreateCommunityPost, usePostComments, usePostReaction, useReportPost } from "./hooks";
+import { WorkspaceHeading } from "@/features/workspace/WorkspaceHeading";
+import { playChime } from "@/lib/audio";
 
-function WorkspaceHeading({ eyebrow, title, text, action }) { return <div className="workspace-heading"><div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1><p>{text}</p></div>{action}</div>; }
 
-function playChime() { try { const Ctx = window.AudioContext || window.webkitAudioContext; const ctx = new Ctx(); ctx.resume(); [523.25, 659.25].forEach((freq, index) => { const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.type = "sine"; osc.frequency.value = freq; const start = ctx.currentTime + index * 0.14; gain.gain.setValueAtTime(0.0001, start); gain.gain.exponentialRampToValueAtTime(0.07, start + 0.04); gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.55); osc.connect(gain); gain.connect(ctx.destination); osc.start(start); osc.stop(start + 0.6); }); } catch { /* audio tidak tersedia */ } }
 
 function PostCard({ post, index }) {
   const [show, setShow] = useState(false);
