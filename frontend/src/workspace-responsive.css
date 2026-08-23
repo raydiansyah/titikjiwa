@@ -1,0 +1,405 @@
+/* Workspace responsive layer
+ * Reuses the existing role-aware .workspace-nav instead of duplicating menu data.
+ * Loaded after App.css and theme-responsive.css.
+ */
+
+.workspace,
+.workspace-main,
+.workspace-sidebar,
+.workspace-content,
+.workspace-mobile-head,
+.composer-card,
+.post-card,
+.journal-entry,
+.learning-card,
+.psychologist-card,
+.report-card,
+.stat-card,
+.private-note,
+.safe-callout,
+.aura-card,
+.insight-card,
+.mood-recap,
+.consultation-panel,
+.article-reader,
+.sos-panel {
+  color: var(--tj-text);
+}
+
+.workspace,
+.workspace-main,
+.workspace-content {
+  background-color: var(--tj-bg);
+}
+
+.workspace-sidebar,
+.workspace-mobile-head,
+.composer-card,
+.post-card,
+.journal-entry,
+.learning-card,
+.psychologist-card,
+.report-card,
+.stat-card,
+.aura-card,
+.insight-card,
+.mood-recap,
+.consultation-panel,
+.article-reader,
+.notif-panel,
+.custom-captcha,
+.contact-card {
+  background-color: var(--tj-surface);
+  border-color: var(--tj-border);
+}
+
+.workspace-heading h1,
+.workspace-heading h2,
+.workspace-content h1,
+.workspace-content h2,
+.workspace-content h3,
+.composer-card h2,
+.post-card h2,
+.post-card h3,
+.journal-entry h3,
+.learning-card h2,
+.psychologist-card h2,
+.report-card h3,
+.stat-card strong,
+.aura-copy h2,
+.insight-card p,
+.article-reader h2,
+.consultation-panel h2 {
+  color: var(--tj-text);
+}
+
+.workspace-heading p,
+.workspace-content p,
+.user-chip span,
+.post-meta span,
+.post-card p,
+.journal-entry p,
+.learning-card p,
+.psychologist-card p,
+.report-card p,
+.report-meta,
+.article-card-foot,
+.psy-meta,
+.community-count,
+.notif-item,
+.notif-empty,
+.private-note,
+.safe-callout,
+.sidebar-safe,
+.auth-note {
+  color: var(--tj-text-muted);
+}
+
+.workspace-nav button,
+.logout-button,
+.search-box,
+.search-field,
+.chat-input-row,
+.comment-form,
+.mood-row button,
+.auth-tabs button,
+.user-controls select {
+  color: var(--tj-text-soft);
+  border-color: var(--tj-border);
+}
+
+.workspace-nav button:hover,
+.workspace-nav button:focus-visible,
+.workspace-nav button.active {
+  background: var(--tj-primary-soft);
+  color: var(--tj-primary);
+}
+
+.workspace-nav button:focus-visible,
+.workspace-mobile-head .icon-button:focus-visible,
+.logout-button:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.private-note,
+.safe-callout,
+.professional-note,
+.learning-banner {
+  background: var(--tj-surface-soft);
+  border-color: var(--tj-border);
+}
+
+.chat-bubble.chat-ai,
+.comment-item,
+.sensitive-cover,
+.prompt-chip,
+.safety-plan {
+  background: var(--tj-surface-soft);
+  color: var(--tj-text);
+  border-color: var(--tj-border);
+}
+
+.chat-bubble.chat-user,
+.mood-row button.selected,
+.auth-tabs button.active {
+  background: var(--tj-primary);
+  color: #fff;
+  border-color: var(--tj-primary);
+}
+
+html[data-theme="dark"] .chat-bubble.chat-user,
+html[data-theme="dark"] .mood-row button.selected,
+html[data-theme="dark"] .auth-tabs button.active {
+  color: #132019;
+}
+
+.workspace input,
+.workspace textarea,
+.workspace select,
+.auth-page input,
+.auth-page textarea,
+.auth-page select,
+.sos-panel input,
+.sos-panel textarea {
+  background: var(--tj-surface);
+  color: var(--tj-text);
+  border-color: var(--tj-border);
+}
+
+.workspace input::placeholder,
+.workspace textarea::placeholder,
+.auth-page input::placeholder,
+.auth-page textarea::placeholder,
+.sos-panel input::placeholder,
+.sos-panel textarea::placeholder {
+  color: var(--tj-text-muted);
+  opacity: 1;
+}
+
+.sos-overlay {
+  background: rgba(4, 9, 7, 0.7);
+}
+
+.sos-panel {
+  background: var(--tj-surface);
+  border: 1px solid var(--tj-border);
+  box-shadow: var(--tj-shadow);
+}
+
+/* Tablet and mobile: reuse the desktop role-aware nav as a bottom dock. */
+@media (max-width: 900px) {
+  .workspace {
+    display: block;
+    min-height: 100dvh;
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+
+  .workspace-main {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .workspace-mobile-head {
+    position: sticky;
+    top: 0;
+    z-index: 35;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 64px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--tj-border);
+    background: color-mix(in srgb, var(--tj-bg) 92%, transparent);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .workspace-sidebar {
+    position: fixed;
+    inset: auto 12px calc(10px + env(safe-area-inset-bottom)) 12px;
+    z-index: 50;
+    display: block;
+    width: auto;
+    height: auto;
+    min-height: 0;
+    padding: 7px;
+    overflow: visible;
+    border: 1px solid var(--tj-border);
+    border-radius: 18px;
+    background: color-mix(in srgb, var(--tj-surface) 94%, transparent);
+    box-shadow: var(--tj-shadow);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  /* Logo/account/actions are already represented by workspace-mobile-head. */
+  .workspace-sidebar > .brand-mark,
+  .workspace-sidebar > .user-chip,
+  .workspace-sidebar > .notif-wrap,
+  .workspace-sidebar > .sidebar-safe,
+  .workspace-sidebar > .logout-button {
+    display: none;
+  }
+
+  .workspace-nav {
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0;
+    scrollbar-width: none;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .workspace-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .workspace-nav button {
+    flex: 0 0 auto;
+    min-width: 70px;
+    min-height: 54px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    font-size: 10px;
+    font-weight: 650;
+    line-height: 1.15;
+    text-align: center;
+    white-space: nowrap;
+    scroll-snap-align: center;
+  }
+
+  .workspace-nav button svg {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+  }
+
+  .workspace-nav .nav-dot {
+    position: absolute;
+    margin: -22px 0 0 18px;
+  }
+
+  .workspace-content {
+    width: min(100% - 32px, 760px);
+    margin-inline: auto;
+    padding-top: 28px;
+    padding-bottom: 24px;
+  }
+
+  .workspace-heading {
+    gap: 20px;
+  }
+
+  .workspace-heading > div {
+    min-width: 0;
+  }
+
+  .home-grid,
+  .stats-grid,
+  .stats-grid-3,
+  .psychologist-grid,
+  .article-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .composer-card,
+  .consultation-panel,
+  .article-reader {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .workspace {
+    padding-bottom: calc(82px + env(safe-area-inset-bottom));
+  }
+
+  .workspace-mobile-head {
+    min-height: 60px;
+    padding-inline: 12px;
+  }
+
+  .workspace-mobile-head .brand-mark {
+    font-size: 16px;
+  }
+
+  .workspace-mobile-head .brand-logo-image {
+    width: 28px;
+    height: 28px;
+  }
+
+  .workspace-sidebar {
+    inset-inline: 8px;
+    bottom: calc(7px + env(safe-area-inset-bottom));
+    padding: 6px;
+    border-radius: 16px;
+  }
+
+  .workspace-nav button {
+    min-width: 64px;
+    min-height: 52px;
+    padding-inline: 8px;
+    font-size: 9.5px;
+  }
+
+  .workspace-content {
+    width: calc(100% - 24px);
+    padding-top: 22px;
+  }
+
+  .workspace-heading {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .workspace-heading > .button,
+  .workspace-heading > button {
+    width: 100%;
+  }
+
+  .mood-row,
+  .report-actions,
+  .post-actions,
+  .user-toolbar,
+  .user-controls {
+    flex-wrap: wrap;
+  }
+
+  .post-card,
+  .journal-entry,
+  .composer-card,
+  .psychologist-card,
+  .report-card,
+  .stat-card,
+  .aura-card,
+  .insight-card,
+  .mood-recap {
+    overflow-wrap: anywhere;
+  }
+
+  .sos-panel {
+    width: calc(100vw - 20px);
+    max-height: calc(100dvh - 20px);
+    overflow-y: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-nav {
+    scroll-behavior: auto;
+  }
+}
