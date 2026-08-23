@@ -1,3 +1,10 @@
+## [1.8.3](https://github.com/raydiansyah/titikjiwa/compare/v1.8.2...v1.8.3) (2026-08-23)
+
+
+### Bug Fixes
+
+* enforce owner account admin role ([a37f1e3](https://github.com/raydiansyah/titikjiwa/commit/a37f1e368d997e37778baf95004ddb9580d7cc9d))
+
 ## [1.8.2](https://github.com/raydiansyah/titikjiwa/compare/v1.8.1...v1.8.2) (2026-08-23)
 
 
