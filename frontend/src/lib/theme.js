@@ -40,5 +40,8 @@ export function persistTheme(theme) {
 export function initializeTheme() {
   const theme = getPreferredTheme();
   applyTheme(theme);
+  // Persist the resolved system preference so the legacy provider in App.js
+  // hydrates with the exact same value and does not flash the opposite theme.
+  persistTheme(theme);
   return theme;
 }
