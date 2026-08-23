@@ -1,3 +1,10 @@
+## [1.8.2](https://github.com/raydiansyah/titikjiwa/compare/v1.8.1...v1.8.2) (2026-08-23)
+
+
+### Bug Fixes
+
+* stabilize responsive theme CI pipeline ([1c9c9d6](https://github.com/raydiansyah/titikjiwa/commit/1c9c9d63b99a85fa92acd0272f6559025bf7d46e))
+
 ## [1.8.1](https://github.com/raydiansyah/titikjiwa/compare/v1.8.0...v1.8.1) (2026-08-23)
 
 
