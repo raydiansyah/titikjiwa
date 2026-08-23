@@ -39,10 +39,7 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 resend.api_key = os.environ.get("RESEND_API_KEY", "")
 
-# Create the main app without a prefix
 app = FastAPI()
-
-# Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
 class InMemoryRateLimiter:
@@ -81,7 +78,6 @@ async def request_rate_limit(request: Request, call_next):
     if not allowed:
         return JSONResponse(status_code=429, content={"detail": "Terlalu banyak permintaan. Coba lagi sebentar."}, headers={"Retry-After": str(retry_after)})
     return await call_next(request)
-
 
 JWT_ALGORITHM = "HS256"
 
@@ -229,8 +225,11 @@ async def seed_content():
     owner = await db.users.find_one({"email": owner_email}, {"_id": 0})
     if owner is None:
         await db.users.insert_one({"id": str(uuid.uuid4()), "email": owner_email, "password_hash": hash_password(owner_password), "alias": "Tim titikjiwa", "role": "admin", "created_at": now_iso()})
-    elif not verify_password(owner_password, owner["password_hash"]):
-        await db.users.update_one({"email": owner_email}, {"$set": {"password_hash": hash_password(owner_password)}})
+    else:
+        owner_updates = {"role": "admin"}
+        if not verify_password(owner_password, owner["password_hash"]):
+            owner_updates["password_hash"] = hash_password(owner_password)
+        await db.users.update_one({"email": owner_email}, {"$set": owner_updates})
     psy_email = os.environ.get("PSY_EMAIL")
     if psy_email and await db.users.find_one({"email": psy_email}, {"_id": 0}) is None:
         await db.users.insert_one({"id": str(uuid.uuid4()), "email": psy_email, "password_hash": hash_password(os.environ["PSY_PASSWORD"]), "alias": "dr. Maya Pradipta", "role": "psikolog", "psychologist_id": "psy-maya", "created_at": now_iso()})
@@ -350,23 +349,16 @@ async def forgot_password(payload: ForgotPasswordInput):
     user = await db.users.find_one({"email": payload.email.lower()}, {"_id": 0})
     if user:
         token = secrets.token_urlsafe(32)
-        await db.password_reset_tokens.insert_one({
-            "token": token,
-            "user_id": user["id"],
-            "expires_at": datetime.now(timezone.utc) + timedelta(hours=1),
-            "used": False,
-        })
+        await db.password_reset_tokens.insert_one({"token": token, "user_id": user["id"], "expires_at": datetime.now(timezone.utc) + timedelta(hours=1), "used": False})
         reset_link = f"{os.environ['FRONTEND_URL']}/atur-ulang?token={token}"
         if resend.api_key:
-            html = (
-                '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f5f0;padding:40px 0;">'
+            html = ('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f5f0;padding:40px 0;">'
                 '<tr><td align="center"><table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid #e5e0d8;padding:40px 36px;">'
                 '<tr><td style="font-family:Georgia,serif;font-size:22px;color:#2b3a33;padding-bottom:14px;">Atur ulang kata sandimu</td></tr>'
                 '<tr><td style="font-family:Arial,sans-serif;font-size:13px;line-height:1.7;color:#5d6b63;padding-bottom:26px;">Kami menerima permintaan pemulihan untuk akun titikjiwa kamu. Tautan ini berlaku satu jam dan hanya bisa dipakai sekali.</td></tr>'
                 f'<tr><td style="padding-bottom:26px;"><a href="{reset_link}" style="background:#4a6b5d;color:#ffffff;text-decoration:none;font-family:Arial,sans-serif;font-size:13px;font-weight:bold;padding:13px 22px;display:inline-block;">Buat kata sandi baru</a></td></tr>'
                 '<tr><td style="font-family:Arial,sans-serif;font-size:11px;line-height:1.6;color:#87938a;">Jika kamu tidak meminta ini, abaikan email ini. Ruangmu tetap aman.</td></tr>'
-                '</table></td></tr></table>'
-            )
+                '</table></td></tr></table>')
             try:
                 await asyncio.to_thread(resend.Emails.send, {"from": f"titikjiwa <{os.environ['SENDER_EMAIL']}>", "to": [user["email"]], "subject": "Atur ulang kata sandi titikjiwa", "html": html})
             except Exception as exc:
@@ -377,10 +369,7 @@ async def forgot_password(payload: ForgotPasswordInput):
 
 @api_router.post("/auth/reset-password")
 async def reset_password(payload: ResetPasswordInput):
-    result = await db.password_reset_tokens.update_one(
-        {"token": payload.token, "used": False, "expires_at": {"$gt": datetime.now(timezone.utc)}},
-        {"$set": {"used": True, "used_at": now_iso()}},
-    )
+    result = await db.password_reset_tokens.update_one({"token": payload.token, "used": False, "expires_at": {"$gt": datetime.now(timezone.utc)}}, {"$set": {"used": True, "used_at": now_iso()}})
     if result.matched_count == 0:
         raise HTTPException(status_code=400, detail="Tautan pemulihan tidak valid atau sudah kedaluwarsa.")
     record = await db.password_reset_tokens.find_one({"token": payload.token}, {"_id": 0, "user_id": 1})
@@ -422,7 +411,6 @@ async def create_post(payload: PostCreate, user=Depends(current_user)):
 
 class ReactInput(BaseModel):
     type: str
-
     @field_validator("type")
     @classmethod
     def validate_reaction_type(cls, value):
@@ -443,13 +431,12 @@ async def react_post(post_id: str, payload: ReactInput, user=Depends(current_use
     await db.posts.update_one({"id": post_id}, {"$inc": {f"reactions.{payload.type}": 1}})
     if post.get("author_id") and post["author_id"] != user["id"]:
         label = {"hug": "Pelukan", "strength": "Kekuatan", "relate": "Aku paham"}[payload.type]
-        await db.notifications.insert_one({"id": str(uuid.uuid4()), "user_id": post["author_id"], "text": f"Seseorang mengirim {label} untuk ceritamu \u201c{post['title'][:60]}\u201d.", "read": False, "created_at": now_iso()})
+        await db.notifications.insert_one({"id": str(uuid.uuid4()), "user_id": post["author_id"], "text": f"Seseorang mengirim {label} untuk ceritamu “{post['title'][:60]}”.", "read": False, "created_at": now_iso()})
     return {"ok": True}
 
 class EmergencyContactInput(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     phone: str = Field(min_length=3, max_length=20)
-
     @field_validator("name", "phone")
     @classmethod
     def validate_contact(cls, value):
@@ -457,7 +444,6 @@ class EmergencyContactInput(BaseModel):
         if not value or any(ord(char) < 32 for char in value):
             raise ValueError("Kontak tidak valid.")
         return value
-
     @field_validator("phone")
     @classmethod
     def validate_phone(cls, value):
@@ -479,44 +465,30 @@ async def get_emergency_contact(user=Depends(current_user)):
     return profile["emergency_contact"]
 
 def last_seen_text(iso):
-    if not iso:
-        return None
-    try:
-        delta = datetime.now(timezone.utc) - datetime.fromisoformat(iso)
-    except ValueError:
-        return None
+    if not iso: return None
+    try: delta = datetime.now(timezone.utc) - datetime.fromisoformat(iso)
+    except ValueError: return None
     days = delta.days
-    if days <= 0:
-        return "hari ini"
-    if days == 1:
-        return "kemarin"
-    if days < 30:
-        return f"{days} hari yang lalu"
+    if days <= 0: return "hari ini"
+    if days == 1: return "kemarin"
+    if days < 30: return f"{days} hari yang lalu"
     return f"{days // 30} bulan yang lalu"
 
 AURA_PALETTE = {"Tenang": "#4a6b5d", "Berharap": "#c98a66", "Bingung": "#c2a686", "Berat": "#6b7c8a", "Netral": "#b5aca0"}
 AURA_NAME = {"Tenang": "Air yang Tenang", "Berharap": "Fajar Bersemi", "Bingung": "Kabut Pagi", "Berat": "Mendung yang Jujur", "Netral": "Tanah Lapang"}
-AURA_DESC = {
-    "Tenang": "Ketenangan mendominasi catatanmu. Pertahankan ritual kecil yang menopangnya.",
-    "Berharap": "Ada cahaya yang tumbuh dalam tulisanmu. Harapanmu mulai berakar.",
-    "Bingung": "Kabut berarti kamu sedang bergerak. Pelan-pelan, arah akan tampak.",
-    "Berat": "Bebanmu nyata, dan kamu tetap memilih menulis. Itu keberanian.",
-    "Netral": "Ketenangan netral adalah tanah lapang yang siap ditumbuhi.",
-}
+AURA_DESC = {"Tenang": "Ketenangan mendominasi catatanmu. Pertahankan ritual kecil yang menopangnya.", "Berharap": "Ada cahaya yang tumbuh dalam tulisanmu. Harapanmu mulai berakar.", "Bingung": "Kabut berarti kamu sedang bergerak. Pelan-pelan, arah akan tampak.", "Berat": "Bebanmu nyata, dan kamu tetap memilih menulis. Itu keberanian.", "Netral": "Ketenangan netral adalah tanah lapang yang siap ditumbuhi."}
 
 @api_router.get("/me/aura")
 async def my_aura(user=Depends(current_user)):
     entries = await db.journals.find({"user_id": user["id"]}, {"_id": 0, "mood": 1}).to_list(200)
     counts = {}
-    for entry in entries:
-        counts[entry["mood"]] = counts.get(entry["mood"], 0) + 1
+    for entry in entries: counts[entry["mood"]] = counts.get(entry["mood"], 0) + 1
     ordered = sorted(counts.items(), key=lambda kv: kv[1], reverse=True)
     if not ordered:
         aura = {"name": "Embun Pagi", "colors": ["#4a6b5d", "#c2a686", "#e9e2d2"], "description": "Ruangmu masih baru — aura lembut ini siap berubah mengikuti perjalananmu."}
     else:
         colors = [AURA_PALETTE[mood] for mood, _ in ordered[:3] if mood in AURA_PALETTE] or ["#4a6b5d"]
-        if len(colors) == 1:
-            colors.append("#e9e2d2")
+        if len(colors) == 1: colors.append("#e9e2d2")
         dominant = ordered[0][0]
         aura = {"name": AURA_NAME.get(dominant, "Embun Pagi"), "colors": colors, "description": AURA_DESC.get(dominant, "")}
     week_key = datetime.now(timezone.utc).strftime("%G-W%V")
@@ -552,8 +524,7 @@ async def crisis_alerts(admin=Depends(require_admin)):
 @api_router.post("/admin/crisis-alerts/{alert_id}/acknowledge")
 async def acknowledge_crisis(alert_id: str, admin=Depends(require_admin)):
     result = await db.crisis_alerts.update_one({"id": alert_id}, {"$set": {"acknowledged": True}})
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Sinyal tidak ditemukan.")
+    if result.matched_count == 0: raise HTTPException(status_code=404, detail="Sinyal tidak ditemukan.")
     return {"ok": True}
 
 @api_router.get("/notifications")
@@ -567,14 +538,13 @@ async def read_notifications(user=Depends(current_user)):
 
 @api_router.post("/posts/{post_id}/comments")
 async def add_comment(post_id: str, payload: CommentCreate, user=Depends(current_user)):
-    if await db.posts.find_one({"id": post_id}, {"_id": 0}) is None:
-        raise HTTPException(status_code=404, detail="Cerita tidak ditemukan.")
+    if await db.posts.find_one({"id": post_id}, {"_id": 0}) is None: raise HTTPException(status_code=404, detail="Cerita tidak ditemukan.")
     comment = {"id": str(uuid.uuid4()), "post_id": post_id, "alias": user["alias"], "role": user.get("role", "member"), "psychologist_id": user.get("psychologist_id"), "body": payload.body.strip(), "created_at": now_iso()}
     await db.comments.insert_one(comment)
     await db.posts.update_one({"id": post_id}, {"$inc": {"comment_count": 1}})
     post = await db.posts.find_one({"id": post_id}, {"_id": 0, "author_id": 1, "title": 1})
     if post and post.get("author_id") and post["author_id"] != user["id"]:
-        await db.notifications.insert_one({"id": str(uuid.uuid4()), "user_id": post["author_id"], "text": f"Seseorang membalas ceritamu \u201c{post['title'][:60]}\u201d.", "read": False, "created_at": now_iso()})
+        await db.notifications.insert_one({"id": str(uuid.uuid4()), "user_id": post["author_id"], "text": f"Seseorang membalas ceritamu “{post['title'][:60]}”.", "read": False, "created_at": now_iso()})
     return {key: comment[key] for key in comment if key != "_id"}
 
 @api_router.get("/posts/{post_id}/comments")
@@ -583,12 +553,9 @@ async def get_comments(post_id: str):
 
 @api_router.post("/posts/{post_id}/report")
 async def report_post(post_id: str, user=Depends(current_user)):
-    if await db.posts.find_one({"id": post_id}, {"_id": 1}) is None:
-        raise HTTPException(status_code=404, detail="Cerita tidak ditemukan.")
-    try:
-        await db.reports.insert_one({"id": str(uuid.uuid4()), "post_id": post_id, "user_id": user["id"], "created_at": now_iso()})
-    except DuplicateKeyError:
-        return {"ok": True, "message": "Laporanmu sudah tercatat sebelumnya."}
+    if await db.posts.find_one({"id": post_id}, {"_id": 1}) is None: raise HTTPException(status_code=404, detail="Cerita tidak ditemukan.")
+    try: await db.reports.insert_one({"id": str(uuid.uuid4()), "post_id": post_id, "user_id": user["id"], "created_at": now_iso()})
+    except DuplicateKeyError: return {"ok": True, "message": "Laporanmu sudah tercatat sebelumnya."}
     return {"ok": True, "message": "Laporan diterima dan akan ditinjau tim kami."}
 
 class ArticleCreate(BaseModel):
@@ -602,24 +569,20 @@ async def admin_reports(admin=Depends(require_admin)):
     reports = await db.reports.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
     post_ids = list({report["post_id"] for report in reports})
     posts_map = {}
-    if post_ids:
-        posts_map = {post["id"]: post for post in await db.posts.find({"id": {"$in": post_ids}}, {"_id": 0, "author_id": 0}).to_list(200)}
+    if post_ids: posts_map = {post["id"]: post for post in await db.posts.find({"id": {"$in": post_ids}}, {"_id": 0, "author_id": 0}).to_list(200)}
     return [{**report, "post": posts_map.get(report["post_id"])} for report in reports]
 
 @api_router.post("/admin/reports/{report_id}/dismiss")
 async def dismiss_report(report_id: str, admin=Depends(require_admin)):
     result = await db.reports.delete_one({"id": report_id})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Laporan tidak ditemukan.")
+    if result.deleted_count == 0: raise HTTPException(status_code=404, detail="Laporan tidak ditemukan.")
     return {"ok": True}
 
 @api_router.delete("/admin/posts/{post_id}")
 async def admin_delete_post(post_id: str, admin=Depends(require_admin)):
     result = await db.posts.delete_one({"id": post_id})
-    if result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Cerita tidak ditemukan.")
-    await db.comments.delete_many({"post_id": post_id})
-    await db.reports.delete_many({"post_id": post_id})
+    if result.deleted_count == 0: raise HTTPException(status_code=404, detail="Cerita tidak ditemukan.")
+    await db.comments.delete_many({"post_id": post_id}); await db.reports.delete_many({"post_id": post_id})
     return {"ok": True}
 
 @api_router.post("/articles")
@@ -650,22 +613,18 @@ async def admin_psychologists(admin=Depends(require_admin)):
 
 @api_router.post("/admin/psychologists")
 async def admin_create_psychologist(payload: PsychologistCreate, admin=Depends(require_admin)):
-    email = payload.email.lower()
-    psy_id = str(uuid.uuid4())
+    email = payload.email.lower(); psy_id = str(uuid.uuid4())
     initials = "".join(part[0] for part in payload.name.replace(",", " ").split() if part[0].isalpha())[:2].upper()
     await db.psychologists.insert_one({"id": psy_id, "name": payload.name.strip(), "specialty": payload.specialty.strip(), "city": payload.city.strip(), "availability": payload.availability.strip(), "bio": payload.bio.strip(), "initials": initials or "PS", "verified": True, "active": True})
-    try:
-        await db.users.insert_one({"id": str(uuid.uuid4()), "email": email, "password_hash": hash_password(payload.password), "alias": payload.name.strip(), "role": "psikolog", "psychologist_id": psy_id, "created_at": now_iso()})
+    try: await db.users.insert_one({"id": str(uuid.uuid4()), "email": email, "password_hash": hash_password(payload.password), "alias": payload.name.strip(), "role": "psikolog", "psychologist_id": psy_id, "created_at": now_iso()})
     except DuplicateKeyError as exc:
-        await db.psychologists.delete_one({"id": psy_id})
-        raise HTTPException(status_code=409, detail="Email sudah terdaftar.") from exc
+        await db.psychologists.delete_one({"id": psy_id}); raise HTTPException(status_code=409, detail="Email sudah terdaftar.") from exc
     return {"ok": True, "id": psy_id}
 
 @api_router.post("/admin/psychologists/{psy_id}/toggle")
 async def admin_toggle_psychologist(psy_id: str, admin=Depends(require_admin)):
     psy = await db.psychologists.find_one({"id": psy_id}, {"_id": 0})
-    if not psy:
-        raise HTTPException(status_code=404, detail="Psikolog tidak ditemukan.")
+    if not psy: raise HTTPException(status_code=404, detail="Psikolog tidak ditemukan.")
     active = not psy.get("active", True)
     await db.psychologists.update_one({"id": psy_id}, {"$set": {"active": active}})
     await db.users.update_many({"psychologist_id": psy_id}, {"$set": {"disabled": not active}})
@@ -679,12 +638,10 @@ async def psychologist_stats(user=Depends(require_roles("psikolog"))):
 @api_router.post("/psychologists/me/profile")
 async def update_psychologist_profile(payload: ProfileUpdate, user=Depends(require_roles("psikolog"))):
     pid = user.get("psychologist_id")
-    if not pid:
-        raise HTTPException(status_code=400, detail="Akun ini belum terhubung ke profil psikolog.")
+    if not pid: raise HTTPException(status_code=400, detail="Akun ini belum terhubung ke profil psikolog.")
     update = {"specialty": payload.specialty.strip(), "availability": payload.availability.strip(), "city": payload.city.strip(), "bio": payload.bio.strip()}
     if payload.photo:
-        if not payload.photo.startswith("data:image/") or len(payload.photo) > 700_000:
-            raise HTTPException(status_code=400, detail="Foto harus berupa gambar maksimal 500 KB.")
+        if not payload.photo.startswith("data:image/") or len(payload.photo) > 700_000: raise HTTPException(status_code=400, detail="Foto harus berupa gambar maksimal 500 KB.")
         update["photo"] = payload.photo
     await db.psychologists.update_one({"id": pid}, {"$set": update})
     return await db.psychologists.find_one({"id": pid}, {"_id": 0})
@@ -700,113 +657,72 @@ class AiChatInput(BaseModel):
 @api_router.post("/onboarding")
 async def save_onboarding(payload: OnboardingInput, user=Depends(current_user)):
     doc = {"user_id": user["id"], "brings": payload.brings.strip(), "feeling": payload.feeling.strip(), "hope": payload.hope.strip(), "updated_at": now_iso()}
-    await db.profiles.update_one({"user_id": user["id"]}, {"$set": doc}, upsert=True)
-    return {"ok": True}
+    await db.profiles.update_one({"user_id": user["id"]}, {"$set": doc}, upsert=True); return {"ok": True}
 
 @api_router.get("/onboarding")
 async def get_onboarding(user=Depends(current_user)):
     profile = await db.profiles.find_one({"user_id": user["id"]}, {"_id": 0, "user_id": 0})
-    if not profile:
-        raise HTTPException(status_code=404, detail="Wawancara belum diisi.")
+    if not profile: raise HTTPException(status_code=404, detail="Wawancara belum diisi.")
     return profile
 
-AI_SYSTEM_BASE = (
-    "Kamu adalah Sinta, teman AI di aplikasi titikjiwa, ruang pemulihan trauma. "
-    "Jawab dalam Bahasa Indonesia yang hangat dan manusiawi, singkat (2-4 kalimat). "
-    "Kamu bukan terapis dan tidak memberi diagnosis. Validasi perasaan, lalu tawarkan satu langkah kecil yang lembut. "
-    "Jika ada tanda bahaya atau krisis, arahkan ke bantuan profesional atau layanan darurat dengan penuh kepedulian. "
-    "Boleh mengutip pengalaman komunitas yang relevan, tanpa menyebut nama atau identitas. "
-    "Tulis teks polos tanpa format markdown (tanpa tanda bintang, pagar, atau daftar berpoin)."
-)
+AI_SYSTEM_BASE = ("Kamu adalah Sinta, teman AI di aplikasi titikjiwa, ruang pemulihan trauma. " "Jawab dalam Bahasa Indonesia yang hangat dan manusiawi, singkat (2-4 kalimat). " "Kamu bukan terapis dan tidak memberi diagnosis. Validasi perasaan, lalu tawarkan satu langkah kecil yang lembut. " "Jika ada tanda bahaya atau krisis, arahkan ke bantuan profesional atau layanan darurat dengan penuh kepedulian. " "Boleh mengutip pengalaman komunitas yang relevan, tanpa menyebut nama atau identitas. " "Tulis teks polos tanpa format markdown (tanpa tanda bintang, pagar, atau daftar berpoin).")
 
-def tokenize(text: str):
-    return {w for w in re.findall(r"[a-zà-ÿ]{4,}", text.lower())}
+def tokenize(text: str): return {w for w in re.findall(r"[a-zà-ÿ]{4,}", text.lower())}
 
 async def retrieve_knowledge(query: str, limit: int = 4):
     words = tokenize(query)
-    if not words:
-        return []
+    if not words: return []
     scored = []
     async for post in db.posts.find({}, {"_id": 0, "title": 1, "body": 1, "topic": 1}).limit(200):
-        text = f"{post['title']} {post['body']} {post['topic']}"
-        score = len(words & tokenize(text))
-        if score:
-            scored.append((score, f"Pengalaman komunitas ({post['topic']}): {post['title']} — {post['body'][:220]}"))
+        text = f"{post['title']} {post['body']} {post['topic']}"; score = len(words & tokenize(text))
+        if score: scored.append((score, f"Pengalaman komunitas ({post['topic']}): {post['title']} — {post['body'][:220]}"))
     async for article in db.articles.find({}, {"_id": 0, "title": 1, "excerpt": 1, "category": 1}).limit(100):
-        text = f"{article['title']} {article['excerpt']} {article['category']}"
-        score = len(words & tokenize(text))
-        if score:
-            scored.append((score, f"Panduan psikolog ({article['category']}): {article['title']} — {article['excerpt'][:220]}"))
+        text = f"{article['title']} {article['excerpt']} {article['category']}"; score = len(words & tokenize(text))
+        if score: scored.append((score, f"Panduan psikolog ({article['category']}): {article['title']} — {article['excerpt'][:220]}"))
     async for past in db.ai_interactions.find({}, {"_id": 0, "message": 1, "reply": 1}).sort("created_at", -1).limit(150):
         score = len(words & tokenize(past["message"]))
-        if score:
-            scored.append((score, f"Pernah dibahas: {past['message'][:140]} — Jawaban sebelumnya: {past['reply'][:220]}"))
-    scored.sort(key=lambda item: item[0], reverse=True)
-    return [text for _, text in scored[:limit]]
+        if score: scored.append((score, f"Pernah dibahas: {past['message'][:140]} — Jawaban sebelumnya: {past['reply'][:220]}"))
+    scored.sort(key=lambda item: item[0], reverse=True); return [text for _, text in scored[:limit]]
 
 CRISIS_TERMS = ("bunuh diri", "ingin mati", "pengen mati", "mengakhiri hidup", "akhiri hidup", "menyakiti diri", "melukai diri", "self harm", "self-harm", "sayat", "gantung diri", "tidak ingin hidup", "tidak mau hidup", "lebih baik aku mati", "lebih baik saya mati")
-
-def is_crisis(text: str):
-    lowered = text.lower()
-    return any(term in lowered for term in CRISIS_TERMS)
+def is_crisis(text: str): return any(term in text.lower() for term in CRISIS_TERMS)
 
 @api_router.post("/ai/chat")
 async def ai_chat(payload: AiChatInput, user=Depends(current_user)):
-    if is_crisis(payload.message):
-        await db.crisis_alerts.insert_one({"id": str(uuid.uuid4()), "user_id": user["id"], "alias": user["alias"], "excerpt": payload.message[:140], "acknowledged": False, "created_at": now_iso()})
-    knowledge = await retrieve_knowledge(payload.message)
-    profile = await db.profiles.find_one({"user_id": user["id"]}, {"_id": 0})
-    parts = [AI_SYSTEM_BASE]
-    if profile:
-        parts.append(f"Tentang pengguna ini dari wawancara pengenalan — yang membawanya ke sini: {profile['brings']}. Yang paling terasa akhir-akhir ini: {profile['feeling']}. Harapannya: {profile['hope']}.")
-    if knowledge:
-        parts.append("Pengetahuan relevan dari komunitas dan psikolog:\n" + "\n".join(f"- {item}" for item in knowledge))
+    if is_crisis(payload.message): await db.crisis_alerts.insert_one({"id": str(uuid.uuid4()), "user_id": user["id"], "alias": user["alias"], "excerpt": payload.message[:140], "acknowledged": False, "created_at": now_iso()})
+    knowledge = await retrieve_knowledge(payload.message); profile = await db.profiles.find_one({"user_id": user["id"]}, {"_id": 0}); parts = [AI_SYSTEM_BASE]
+    if profile: parts.append(f"Tentang pengguna ini dari wawancara pengenalan — yang membawanya ke sini: {profile['brings']}. Yang paling terasa akhir-akhir ini: {profile['feeling']}. Harapannya: {profile['hope']}.")
+    if knowledge: parts.append("Pengetahuan relevan dari komunitas dan psikolog:\n" + "\n".join(f"- {item}" for item in knowledge))
     from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone
     chat = LlmChat(api_key=os.environ["EMERGENT_LLM_KEY"], session_id=f"titikjiwa-{user['id']}", system_message="\n\n".join(parts)).with_model("openai", "gpt-5.4")
-
     async def event_stream():
         reply_parts = []
         try:
             async for event in chat.stream_message(UserMessage(text=payload.message)):
-                if isinstance(event, TextDelta):
-                    reply_parts.append(event.content)
-                    yield f"data: {json.dumps({'token': event.content})}\n\n"
-                elif isinstance(event, StreamDone):
-                    break
+                if isinstance(event, TextDelta): reply_parts.append(event.content); yield f"data: {json.dumps({'token': event.content})}\n\n"
+                elif isinstance(event, StreamDone): break
         except Exception as exc:
-            logger.error("AI stream error: %s", exc)
-            yield f"data: {json.dumps({'error': 'Teman AI sedang terganggu. Coba lagi sebentar.'})}\n\n"
+            logger.error("AI stream error: %s", exc); yield f"data: {json.dumps({'error': 'Teman AI sedang terganggu. Coba lagi sebentar.'})}\n\n"
         reply = "".join(reply_parts).strip()
-        if reply:
-            await db.ai_interactions.insert_one({"id": str(uuid.uuid4()), "user_id": user["id"], "role": user.get("role", "member"), "message": payload.message.strip(), "reply": reply, "created_at": now_iso()})
+        if reply: await db.ai_interactions.insert_one({"id": str(uuid.uuid4()), "user_id": user["id"], "role": user.get("role", "member"), "message": payload.message.strip(), "reply": reply, "created_at": now_iso()})
         yield "data: [DONE]\n\n"
-
     return StreamingResponse(event_stream(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 @api_router.post("/ai/weekly-insight")
 async def weekly_insight(user=Depends(current_user)):
     week_key = datetime.now(timezone.utc).strftime("%G-W%V")
     existing = await db.weekly_insights.find_one({"user_id": user["id"], "week_key": week_key}, {"_id": 0, "user_id": 0})
-    if existing:
-        return {"insight": existing["text"], "week": week_key, "cached": True}
-    since = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
-    entries = await db.journals.find({"user_id": user["id"], "created_at": {"$gte": since}}, {"_id": 0, "title": 1, "mood": 1}).to_list(50)
-    if not entries:
-        raise HTTPException(status_code=400, detail="Belum ada jurnal minggu ini untuk diringkas.")
+    if existing: return {"insight": existing["text"], "week": week_key, "cached": True}
+    since = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat(); entries = await db.journals.find({"user_id": user["id"], "created_at": {"$gte": since}}, {"_id": 0, "title": 1, "mood": 1}).to_list(50)
+    if not entries: raise HTTPException(status_code=400, detail="Belum ada jurnal minggu ini untuk diringkas.")
     summary_lines = "\n".join(f"- [{entry['mood']}] {entry['title']}" for entry in entries)
-    prompt = (
-        "Berikut catatan jurnal pengguna selama 7 hari terakhir (suasana hati dan judulnya):\n"
-        f"{summary_lines}\n\n"
-        "Tulis catatan lembut 3-4 kalimat dalam Bahasa Indonesia: rangkum pola perasaannya minggu ini, hargai usahanya menulis, dan tawarkan satu ajakan kecil untuk minggu depan. Jangan mendiagnosis."
-    )
+    prompt = "Berikut catatan jurnal pengguna selama 7 hari terakhir (suasana hati dan judulnya):\n" + summary_lines + "\n\nTulis catatan lembut 3-4 kalimat dalam Bahasa Indonesia: rangkum pola perasaannya minggu ini, hargai usahanya menulis, dan tawarkan satu ajakan kecil untuk minggu depan. Jangan mendiagnosis."
     from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone
     chat = LlmChat(api_key=os.environ["EMERGENT_LLM_KEY"], session_id=f"insight-{user['id']}-{week_key}", system_message="Kamu adalah Sinta, teman AI titikjiwa yang hangat dan penuh perhatian.").with_model("openai", "gpt-5.4")
     reply_parts = []
     async for event in chat.stream_message(UserMessage(text=prompt)):
-        if isinstance(event, TextDelta):
-            reply_parts.append(event.content)
-        elif isinstance(event, StreamDone):
-            break
+        if isinstance(event, TextDelta): reply_parts.append(event.content)
+        elif isinstance(event, StreamDone): break
     text = "".join(reply_parts).strip() or "Terima kasih sudah menulis minggu ini. Setiap catatan kecil berarti."
     await db.weekly_insights.update_one({"user_id": user["id"], "week_key": week_key}, {"$set": {"text": text, "created_at": now_iso()}}, upsert=True)
     return {"insight": text, "week": week_key, "cached": False}
@@ -816,29 +732,18 @@ DEFAULT_SUGGESTIONS = ["Aku sulit tidur akhir-akhir ini", "Aku merasa bersalah s
 @api_router.get("/ai/suggestions")
 async def ai_suggestions(user=Depends(current_user)):
     profile = await db.profiles.find_one({"user_id": user["id"]}, {"_id": 0})
-    if not profile:
-        return {"suggestions": DEFAULT_SUGGESTIONS}
-    if profile.get("suggestions"):
-        return {"suggestions": profile["suggestions"]}
-    prompt = (
-        "Berdasarkan jawaban wawancara pengguna berikut:\n"
-        f"- Yang membawanya ke sini: {profile['brings']}\n"
-        f"- Yang paling terasa akhir-akhir ini: {profile['feeling']}\n"
-        f"- Harapannya: {profile['hope']}\n\n"
-        "Buat 3 saran kalimat pembuka yang bisa pengguna kirim ke teman AI. Syarat: orang pertama, lembut, maksimal 10 kata per kalimat, Bahasa Indonesia. Tulis hanya 3 baris tanpa nomor, tanpa tanda bintang."
-    )
+    if not profile: return {"suggestions": DEFAULT_SUGGESTIONS}
+    if profile.get("suggestions"): return {"suggestions": profile["suggestions"]}
+    prompt = f"Berdasarkan jawaban wawancara pengguna berikut:\n- Yang membawanya ke sini: {profile['brings']}\n- Yang paling terasa akhir-akhir ini: {profile['feeling']}\n- Harapannya: {profile['hope']}\n\nBuat 3 saran kalimat pembuka yang bisa pengguna kirim ke teman AI. Syarat: orang pertama, lembut, maksimal 10 kata per kalimat, Bahasa Indonesia. Tulis hanya 3 baris tanpa nomor, tanpa tanda bintang."
     from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone
     chat = LlmChat(api_key=os.environ["EMERGENT_LLM_KEY"], session_id=f"suggest-{user['id']}", system_message="Kamu membantu merumuskan kalimat pembuka yang personal dan lembut.").with_model("openai", "gpt-5.4")
     reply_parts = []
     async for event in chat.stream_message(UserMessage(text=prompt)):
-        if isinstance(event, TextDelta):
-            reply_parts.append(event.content)
-        elif isinstance(event, StreamDone):
-            break
+        if isinstance(event, TextDelta): reply_parts.append(event.content)
+        elif isinstance(event, StreamDone): break
     lines = [line.strip().strip("-•0123. ").strip('"') for line in "".join(reply_parts).split("\n") if line.strip()]
     suggestions = [line for line in lines if 5 <= len(line) <= 120][:3] or DEFAULT_SUGGESTIONS
-    await db.profiles.update_one({"user_id": user["id"]}, {"$set": {"suggestions": suggestions}})
-    return {"suggestions": suggestions}
+    await db.profiles.update_one({"user_id": user["id"]}, {"$set": {"suggestions": suggestions}}); return {"suggestions": suggestions}
 
 @api_router.get("/ai/weekly-insights")
 async def weekly_insight_archive(user=Depends(current_user)):
@@ -848,43 +753,33 @@ async def weekly_insight_archive(user=Depends(current_user)):
 async def ai_history(user=Depends(current_user)):
     return await db.ai_interactions.find({"user_id": user["id"]}, {"_id": 0, "user_id": 0}).sort("created_at", 1).to_list(50)
 
-class ConsultationStatus(BaseModel):
-    status: str
-
+class ConsultationStatus(BaseModel): status: str
 class UserUpdate(BaseModel):
     role: Optional[str] = None
     alias: Optional[str] = None
     disabled: Optional[bool] = None
-
     @field_validator("alias")
     @classmethod
     def validate_alias(cls, value):
-        if value is None:
-            return value
+        if value is None: return value
         value = value.strip()
-        if len(value) < 2 or any(ord(char) < 32 for char in value):
-            raise ValueError("Nama samaran tidak valid.")
+        if len(value) < 2 or any(ord(char) < 32 for char in value): raise ValueError("Nama samaran tidak valid.")
         return value
-
-class UserPasswordReset(BaseModel):
-    password: str = Field(min_length=8)
+class UserPasswordReset(BaseModel): password: str = Field(min_length=8)
 
 @api_router.get("/consultations")
 async def list_consultations(user=Depends(require_roles("admin", "psikolog"))):
     query = {} if user["role"] == "admin" else {"psychologist_id": user.get("psychologist_id", "-")}
     items = await db.consultations.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
-    for item in items:
-        item.pop("user_id", None)
+    for item in items: item.pop("user_id", None)
     return items
 
 @api_router.post("/consultations/{consultation_id}/status")
 async def update_consultation_status(consultation_id: str, payload: ConsultationStatus, user=Depends(require_roles("admin", "psikolog"))):
-    if payload.status not in ("Terkonfirmasi", "Ditolak"):
-        raise HTTPException(status_code=400, detail="Status tidak dikenal.")
+    if payload.status not in ("Terkonfirmasi", "Ditolak"): raise HTTPException(status_code=400, detail="Status tidak dikenal.")
     query = {"id": consultation_id} if user["role"] == "admin" else {"id": consultation_id, "psychologist_id": user.get("psychologist_id", "-")}
     result = await db.consultations.update_one(query, {"$set": {"status": payload.status}})
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Permintaan konsultasi tidak ditemukan.")
+    if result.matched_count == 0: raise HTTPException(status_code=404, detail="Permintaan konsultasi tidak ditemukan.")
     return {"ok": True}
 
 @api_router.get("/admin/stats")
@@ -898,91 +793,51 @@ async def admin_users(admin=Depends(require_admin)):
 @api_router.patch("/admin/users/{user_id}")
 async def admin_update_user(user_id: str, payload: UserUpdate, admin=Depends(require_admin)):
     user = await db.users.find_one({"id": user_id}, {"_id": 0})
-    if not user:
-        raise HTTPException(status_code=404, detail="Pengguna tidak ditemukan.")
-    if payload.role and payload.role not in ("member", "psikolog", "admin"):
-        raise HTTPException(status_code=400, detail="Peran tidak dikenal.")
-    if user_id == admin["id"] and (payload.disabled is True or (payload.role and payload.role != "admin")):
-        raise HTTPException(status_code=400, detail="Tidak bisa menonaktifkan atau menurunkan peran akun sendiri.")
+    if not user: raise HTTPException(status_code=404, detail="Pengguna tidak ditemukan.")
+    if payload.role and payload.role not in ("member", "psikolog", "admin"): raise HTTPException(status_code=400, detail="Peran tidak dikenal.")
+    if user_id == admin["id"] and (payload.disabled is True or (payload.role and payload.role != "admin")): raise HTTPException(status_code=400, detail="Tidak bisa menonaktifkan atau menurunkan peran akun sendiri.")
     update = {}
-    if payload.role is not None:
-        update["role"] = payload.role
-    if payload.alias is not None:
-        update["alias"] = payload.alias.strip()
-    if payload.disabled is not None:
-        update["disabled"] = payload.disabled
-    if not update:
-        raise HTTPException(status_code=400, detail="Tidak ada perubahan.")
-    await db.users.update_one({"id": user_id}, {"$set": update})
-    return {"ok": True}
+    if payload.role is not None: update["role"] = payload.role
+    if payload.alias is not None: update["alias"] = payload.alias.strip()
+    if payload.disabled is not None: update["disabled"] = payload.disabled
+    if not update: raise HTTPException(status_code=400, detail="Tidak ada perubahan.")
+    await db.users.update_one({"id": user_id}, {"$set": update}); return {"ok": True}
 
 @api_router.post("/admin/users/{user_id}/reset-password")
 async def admin_reset_password(user_id: str, payload: UserPasswordReset, admin=Depends(require_admin)):
     user = await db.users.find_one({"id": user_id}, {"_id": 0})
-    if not user:
-        raise HTTPException(status_code=404, detail="Pengguna tidak ditemukan.")
+    if not user: raise HTTPException(status_code=404, detail="Pengguna tidak ditemukan.")
     await db.users.update_one({"id": user_id}, {"$set": {"password_hash": hash_password(payload.password)}})
     await db.login_attempts.delete_many({"identifier": {"$regex": user["email"]}})
     return {"ok": True, "message": "Kata sandi pengguna berhasil diatur ulang."}
 
 @api_router.delete("/admin/users/{user_id}")
 async def admin_delete_user(user_id: str, admin=Depends(require_admin)):
-    if user_id == admin["id"]:
-        raise HTTPException(status_code=400, detail="Tidak bisa menghapus akun sendiri.")
+    if user_id == admin["id"]: raise HTTPException(status_code=400, detail="Tidak bisa menghapus akun sendiri.")
     user = await db.users.find_one({"id": user_id}, {"_id": 0})
-    if not user:
-        raise HTTPException(status_code=404, detail="Pengguna tidak ditemukan.")
-    await db.users.delete_one({"id": user_id})
-    await db.profiles.delete_many({"user_id": user_id})
-    await db.journals.delete_many({"user_id": user_id})
-    await db.notifications.delete_many({"user_id": user_id})
-    await db.ai_interactions.delete_many({"user_id": user_id})
-    await db.aura_history.delete_many({"user_id": user_id})
-    await db.weekly_insights.delete_many({"user_id": user_id})
-    await db.crisis_alerts.delete_many({"user_id": user_id})
-    await db.reports.delete_many({"user_id": user_id})
-    await db.consultations.delete_many({"user_id": user_id})
-    await db.password_reset_tokens.delete_many({"user_id": user_id})
+    if not user: raise HTTPException(status_code=404, detail="Pengguna tidak ditemukan.")
+    await db.users.delete_one({"id": user_id}); await db.profiles.delete_many({"user_id": user_id}); await db.journals.delete_many({"user_id": user_id}); await db.notifications.delete_many({"user_id": user_id}); await db.ai_interactions.delete_many({"user_id": user_id}); await db.aura_history.delete_many({"user_id": user_id}); await db.weekly_insights.delete_many({"user_id": user_id}); await db.crisis_alerts.delete_many({"user_id": user_id}); await db.reports.delete_many({"user_id": user_id}); await db.consultations.delete_many({"user_id": user_id}); await db.password_reset_tokens.delete_many({"user_id": user_id})
     if user.get("role") == "psikolog" and user.get("psychologist_id"):
-        await db.psychologists.delete_many({"id": user["psychologist_id"]})
-        await db.consultations.delete_many({"psychologist_id": user["psychologist_id"]})
+        await db.psychologists.delete_many({"id": user["psychologist_id"]}); await db.consultations.delete_many({"psychologist_id": user["psychologist_id"]})
     return {"ok": True, "message": "Pengguna beserta datanya telah dihapus."}
 
 @api_router.get("/articles")
-async def articles():
-    return await db.articles.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+async def articles(): return await db.articles.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
 
 @api_router.get("/psychologists")
-async def psychologists():
-    return await db.psychologists.find({"active": {"$ne": False}}, {"_id": 0}).to_list(100)
+async def psychologists(): return await db.psychologists.find({"active": {"$ne": False}}, {"_id": 0}).to_list(100)
 
 @api_router.post("/consultations")
 async def consultations(payload: ConsultationCreate, user=Depends(current_user)):
     psychologist = await db.psychologists.find_one({"id": payload.psychologist_id}, {"_id": 0})
-    if not psychologist:
-        raise HTTPException(status_code=404, detail="Psikolog tidak ditemukan.")
+    if not psychologist: raise HTTPException(status_code=404, detail="Psikolog tidak ditemukan.")
     request_doc = {"id": str(uuid.uuid4()), "user_id": user["id"], "psychologist_id": payload.psychologist_id, "preferred_day": payload.preferred_day, "note": payload.note.strip(), "status": "Menunggu konfirmasi", "created_at": now_iso()}
-    await db.consultations.insert_one(request_doc)
-    return {"message": "Permintaan konsultasi terkirim. Tim kami akan menghubungi kamu.", "status": request_doc["status"]}
+    await db.consultations.insert_one(request_doc); return {"message": "Permintaan konsultasi terkirim. Tim kami akan menghubungi kamu.", "status": request_doc["status"]}
 
-# Include the router in the main app
 app.include_router(api_router)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=[os.environ["FRONTEND_URL"]],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+app.add_middleware(CORSMiddleware, allow_credentials=True, allow_origins=[os.environ["FRONTEND_URL"]], allow_methods=["*"], allow_headers=["*"])
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 @app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
+async def shutdown_db_client(): client.close()
