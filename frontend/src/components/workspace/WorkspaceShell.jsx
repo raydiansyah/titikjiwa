@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { WorkspaceSidebar } from "@/components/workspace/WorkspaceSidebar";
 import { WorkspaceMobileHeader } from "@/components/workspace/WorkspaceMobileHeader";
+import { getWorkspaceNavigation } from "@/components/workspace/navigation";
 
 export function WorkspaceShell({ children, emergency, backToTop }) {
   const { loading, user, logout } = useAuth();
@@ -38,12 +39,19 @@ export function WorkspaceShell({ children, emergency, backToTop }) {
     if (!loading && !user) navigate({ to: "/masuk" });
   }, [loading, user, navigate]);
 
+  useEffect(() => {
+    if (!user) return;
+    const allowedSections = new Set(getWorkspaceNavigation(user.role).map((item) => item.id));
+    if (!allowedSections.has(section)) setSection("beranda");
+  }, [section, user]);
+
   if (loading || !user) {
     return <div className="loading-screen" data-testid="workspace-loading">Menyiapkan ruangmu…</div>;
   }
 
   const handleSectionChange = (nextSection) => {
-    setSection(nextSection);
+    const allowedSections = new Set(getWorkspaceNavigation(user.role).map((item) => item.id));
+    setSection(allowedSections.has(nextSection) ? nextSection : "beranda");
     setShowNotifications(false);
   };
 
@@ -67,11 +75,11 @@ export function WorkspaceShell({ children, emergency, backToTop }) {
       <WorkspaceSidebar
         user={user}
         aura={aura}
-        section={section}
-        onSectionChange={handleSectionChange}
+        activeSection={section}
+        unread={unreadCount}
         notifications={notifications}
-        unreadCount={unreadCount}
-        showNotifications={showNotifications}
+        notificationsOpen={showNotifications}
+        onSelectSection={handleSectionChange}
         onToggleNotifications={handleToggleNotifications}
         onLogout={handleLogout}
       />
