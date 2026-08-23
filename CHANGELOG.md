@@ -1,3 +1,10 @@
+## [1.8.1](https://github.com/raydiansyah/titikjiwa/compare/v1.8.0...v1.8.1) (2026-08-23)
+
+
+### Bug Fixes
+
+* align workspace sidebar prop contract ([c90d27a](https://github.com/raydiansyah/titikjiwa/commit/c90d27addf6acd38a38b6494b5aa05c58358b244))
+
 # [1.8.0](https://github.com/raydiansyah/titikjiwa/compare/v1.7.2...v1.8.0) (2026-08-23)
 
 
