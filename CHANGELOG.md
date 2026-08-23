@@ -1,3 +1,11 @@
+# [1.8.0](https://github.com/raydiansyah/titikjiwa/compare/v1.7.2...v1.8.0) (2026-08-23)
+
+
+### Features
+
+* add responsive workspace navigation ([26edcc5](https://github.com/raydiansyah/titikjiwa/commit/26edcc557070746749193f43696062b4e8b9321a))
+* load responsive workspace navigation ([6249088](https://github.com/raydiansyah/titikjiwa/commit/6249088df5ce19ff841f5a31e701f7d03f6fef52))
+
 ## [1.7.2](https://github.com/raydiansyah/titikjiwa/compare/v1.7.1...v1.7.2) (2026-08-23)
 
 
