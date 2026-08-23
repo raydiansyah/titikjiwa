@@ -1,3 +1,11 @@
+# [1.7.0](https://github.com/raydiansyah/titikjiwa/compare/v1.6.0...v1.7.0) (2026-08-23)
+
+
+### Features
+
+* improve responsive navigation and theme contrast ([1300330](https://github.com/raydiansyah/titikjiwa/commit/13003306a67fe87637c46cab264acc3f3a63774b))
+* load responsive light and dark theme styles ([ccbfc47](https://github.com/raydiansyah/titikjiwa/commit/ccbfc470923d54494f0d7f7cf725f0323c59a96f))
+
 # [1.6.0](https://github.com/raydiansyah/titikjiwa/compare/v1.5.0...v1.6.0) (2026-08-22)
 
 
