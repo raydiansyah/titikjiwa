@@ -1,3 +1,10 @@
+## [1.7.2](https://github.com/raydiansyah/titikjiwa/compare/v1.7.1...v1.7.2) (2026-08-23)
+
+
+### Bug Fixes
+
+* improve dark mode form and auth contrast ([96c5dd7](https://github.com/raydiansyah/titikjiwa/commit/96c5dd7968a4c0205da9d70f9768b67c2f731e74))
+
 ## [1.7.1](https://github.com/raydiansyah/titikjiwa/compare/v1.7.0...v1.7.1) (2026-08-23)
 
 
