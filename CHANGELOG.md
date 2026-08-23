@@ -1,3 +1,10 @@
+## [1.8.4](https://github.com/raydiansyah/titikjiwa/compare/v1.8.3...v1.8.4) (2026-08-23)
+
+
+### Bug Fixes
+
+* configure Vercel frontend build ([6e89fa8](https://github.com/raydiansyah/titikjiwa/commit/6e89fa8c5e7e2996e5d7125fc7da1039a953d573))
+
 ## [1.8.3](https://github.com/raydiansyah/titikjiwa/compare/v1.8.2...v1.8.3) (2026-08-23)
 
 
