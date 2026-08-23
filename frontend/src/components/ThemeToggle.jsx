@@ -1,13 +1,15 @@
 import { Moon, Sun } from "lucide-react";
+import { useTheme } from "@/components/theme/ThemeProvider";
 
-export default function ThemeToggle({ theme, onToggle, className = "theme-toggle" }) {
+export function ThemeToggle({ className = "theme-toggle" }) {
+  const { theme, toggleTheme } = useTheme();
   const dark = theme === "dark";
 
   return (
     <button
       type="button"
       className={className}
-      onClick={onToggle}
+      onClick={toggleTheme}
       aria-label={dark ? "Gunakan mode terang" : "Gunakan mode gelap"}
       aria-pressed={dark}
       title={dark ? "Gunakan mode terang" : "Gunakan mode gelap"}
@@ -17,3 +19,5 @@ export default function ThemeToggle({ theme, onToggle, className = "theme-toggle
     </button>
   );
 }
+
+export default ThemeToggle;
