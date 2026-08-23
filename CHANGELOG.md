@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/raydiansyah/titikjiwa/compare/v1.7.0...v1.7.1) (2026-08-23)
+
+
+### Bug Fixes
+
+* persist bootstrapped theme before React render ([9e75662](https://github.com/raydiansyah/titikjiwa/commit/9e75662b507696b30f9ef73f7d3ceca7386f0c56))
+
 # [1.7.0](https://github.com/raydiansyah/titikjiwa/compare/v1.6.0...v1.7.0) (2026-08-23)
 
 
