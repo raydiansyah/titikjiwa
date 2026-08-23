@@ -17,7 +17,7 @@ concurrency:
 jobs:
   modularize:
     name: Materialize modular frontend
-    if: github.event_name == 'pull_request' && hashFiles('scripts/modularize_app.py') != ''
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,20 +27,30 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Generate modular source tree
-        run: python scripts/modularize_app.py
+      - name: Generate modular source tree when pending
+        id: generate
+        run: |
+          if [ ! -f scripts/modularize_app.py ]; then
+            echo "pending=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          python scripts/modularize_app.py
+          echo "pending=true" >> "$GITHUB_OUTPUT"
       - name: Install frontend dependencies
+        if: steps.generate.outputs.pending == 'true'
         working-directory: frontend
         run: |
           npm install -g npm@9.2.0
           npm install --legacy-peer-deps --no-package-lock --no-audit --no-fund
       - name: Validate generated frontend
+        if: steps.generate.outputs.pending == 'true'
         working-directory: frontend
         env:
           REACT_APP_BACKEND_URL: http://localhost:8001
           CI: "false"
         run: npm run build
       - name: Commit validated source tree
+        if: steps.generate.outputs.pending == 'true'
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
