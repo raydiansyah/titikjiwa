@@ -19,6 +19,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, ConfigDict, EmailStr, field_validator
 from typing import List, Optional
 import os
+import subprocess
 import logging
 import uuid
 import secrets
@@ -833,6 +834,15 @@ async def consultations(payload: ConsultationCreate, user=Depends(current_user))
     if not psychologist: raise HTTPException(status_code=404, detail="Psikolog tidak ditemukan.")
     request_doc = {"id": str(uuid.uuid4()), "user_id": user["id"], "psychologist_id": payload.psychologist_id, "preferred_day": payload.preferred_day, "note": payload.note.strip(), "status": "Menunggu konfirmasi", "created_at": now_iso()}
     await db.consultations.insert_one(request_doc); return {"message": "Permintaan konsultasi terkirim. Tim kami akan menghubungi kamu.", "status": request_doc["status"]}
+
+
+@api_router.post("/deploy")
+async def trigger_deploy(request: Request):
+    if request.headers.get("x-deploy-token", "") != os.environ.get("DEPLOY_TOKEN", ""):
+        raise HTTPException(status_code=401, detail="Token deploy tidak valid.")
+    log = open("/var/log/auto_deploy.log", "a")
+    subprocess.Popen(["/app/scripts/auto_deploy.sh"], stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+    return {"ok": True, "message": "Deploy dimulai. Pantau /var/log/auto_deploy.log."}
 
 app.include_router(api_router)
 app.add_middleware(CORSMiddleware, allow_credentials=True, allow_origins=[os.environ["FRONTEND_URL"]], allow_methods=["*"], allow_headers=["*"])
