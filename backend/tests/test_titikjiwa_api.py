@@ -64,7 +64,8 @@ def test_community_interactions(client, member):
     assert client.post(f"{BASE_URL}/api/posts/{post['id']}/comments", json={"body": "Dukungan lembut"}).status_code == 200
     assert client.get(f"{BASE_URL}/api/posts/{post['id']}/comments").status_code == 200
     assert client.post(f"{BASE_URL}/api/posts/{post['id']}/report").status_code == 200
-    assert client.post(f"{BASE_URL}/api/posts/{post['id']}/react", json={"type": "tidak-ada"}).status_code == 400
+    # Invalid reaction types are rejected by Pydantic request validation.
+    assert client.post(f"{BASE_URL}/api/posts/{post['id']}/react", json={"type": "tidak-ada"}).status_code == 422
 
 
 def test_consultation(client, member):

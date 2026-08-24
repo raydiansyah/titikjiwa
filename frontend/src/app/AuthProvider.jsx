@@ -1,0 +1,5 @@
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { api } from "@/lib/api";
+const AuthContext = createContext(null);
+export function AuthProvider({ children }) { const [state, setState] = useState({ loading: true, user: null }); useEffect(() => { api.get("/auth/me").then(({ data }) => setState({ loading: false, user: data })).catch(() => setState({ loading: false, user: null })); }, []); const value = useMemo(() => ({ ...state, login: async (payload) => { const { data } = await api.post("/auth/login", payload); setState({ loading: false, user: data.user }); return data.user; }, register: async (payload) => { const { data } = await api.post("/auth/register", payload); setState({ loading: false, user: data.user }); return data.user; }, logout: async () => { await api.post("/auth/logout").catch(() => {}); setState({ loading: false, user: null }); } }), [state]); return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>; }
+export function useAuth() { return useContext(AuthContext); }

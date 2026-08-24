@@ -6,6 +6,10 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   pr-title:
     name: Validasi judul PR (conventional commits)
@@ -29,10 +33,9 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-          cache-dependency-path: backend/requirements.txt
+          cache-dependency-path: backend/requirements-ci.txt
       - name: Instal dependensi
-        run: |
-          pip install -r backend/requirements-ci.txt
+        run: pip install -r backend/requirements-ci.txt
       - name: Nyalakan API uji
         working-directory: backend
         env:
@@ -43,11 +46,29 @@ jobs:
           JWT_SECRET: ci-secret-key
           FRONTEND_URL: http://localhost:3000
         run: |
-          python -m uvicorn server:app --host 0.0.0.0 --port 8001 &
-          for i in $(seq 1 30); do curl -sf http://localhost:8001/api/ > /dev/null && break || sleep 2; done
+          python -m uvicorn server:app --host 0.0.0.0 --port 8001 > /tmp/titikjiwa-api.log 2>&1 &
+          API_PID=$!
+          ready=0
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8001/api/ > /dev/null; then
+              ready=1
+              break
+            fi
+            if ! kill -0 "$API_PID" 2>/dev/null; then
+              cat /tmp/titikjiwa-api.log
+              exit 1
+            fi
+            sleep 2
+          done
+          if [ "$ready" -ne 1 ]; then
+            cat /tmp/titikjiwa-api.log
+            exit 1
+          fi
       - name: Jalankan pytest
         env:
           TEST_BASE_URL: http://localhost:8001
+          ADMIN_EMAIL: admin@titikjiwa.id
+          ADMIN_PASSWORD: titikjiwaAdmin123!
         run: pytest backend/tests -v
 
   frontend:

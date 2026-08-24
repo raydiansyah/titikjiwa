@@ -1,3 +1,61 @@
+## [1.8.4](https://github.com/raydiansyah/titikjiwa/compare/v1.8.3...v1.8.4) (2026-08-23)
+
+
+### Bug Fixes
+
+* configure Vercel frontend build ([6e89fa8](https://github.com/raydiansyah/titikjiwa/commit/6e89fa8c5e7e2996e5d7125fc7da1039a953d573))
+
+## [1.8.3](https://github.com/raydiansyah/titikjiwa/compare/v1.8.2...v1.8.3) (2026-08-23)
+
+
+### Bug Fixes
+
+* enforce owner account admin role ([a37f1e3](https://github.com/raydiansyah/titikjiwa/commit/a37f1e368d997e37778baf95004ddb9580d7cc9d))
+
+## [1.8.2](https://github.com/raydiansyah/titikjiwa/compare/v1.8.1...v1.8.2) (2026-08-23)
+
+
+### Bug Fixes
+
+* stabilize responsive theme CI pipeline ([1c9c9d6](https://github.com/raydiansyah/titikjiwa/commit/1c9c9d63b99a85fa92acd0272f6559025bf7d46e))
+
+## [1.8.1](https://github.com/raydiansyah/titikjiwa/compare/v1.8.0...v1.8.1) (2026-08-23)
+
+
+### Bug Fixes
+
+* align workspace sidebar prop contract ([c90d27a](https://github.com/raydiansyah/titikjiwa/commit/c90d27addf6acd38a38b6494b5aa05c58358b244))
+
+# [1.8.0](https://github.com/raydiansyah/titikjiwa/compare/v1.7.2...v1.8.0) (2026-08-23)
+
+
+### Features
+
+* add responsive workspace navigation ([26edcc5](https://github.com/raydiansyah/titikjiwa/commit/26edcc557070746749193f43696062b4e8b9321a))
+* load responsive workspace navigation ([6249088](https://github.com/raydiansyah/titikjiwa/commit/6249088df5ce19ff841f5a31e701f7d03f6fef52))
+
+## [1.7.2](https://github.com/raydiansyah/titikjiwa/compare/v1.7.1...v1.7.2) (2026-08-23)
+
+
+### Bug Fixes
+
+* improve dark mode form and auth contrast ([96c5dd7](https://github.com/raydiansyah/titikjiwa/commit/96c5dd7968a4c0205da9d70f9768b67c2f731e74))
+
+## [1.7.1](https://github.com/raydiansyah/titikjiwa/compare/v1.7.0...v1.7.1) (2026-08-23)
+
+
+### Bug Fixes
+
+* persist bootstrapped theme before React render ([9e75662](https://github.com/raydiansyah/titikjiwa/commit/9e75662b507696b30f9ef73f7d3ceca7386f0c56))
+
+# [1.7.0](https://github.com/raydiansyah/titikjiwa/compare/v1.6.0...v1.7.0) (2026-08-23)
+
+
+### Features
+
+* improve responsive navigation and theme contrast ([1300330](https://github.com/raydiansyah/titikjiwa/commit/13003306a67fe87637c46cab264acc3f3a63774b))
+* load responsive light and dark theme styles ([ccbfc47](https://github.com/raydiansyah/titikjiwa/commit/ccbfc470923d54494f0d7f7cf725f0323c59a96f))
+
 # [1.6.0](https://github.com/raydiansyah/titikjiwa/compare/v1.5.0...v1.6.0) (2026-08-22)
 
 

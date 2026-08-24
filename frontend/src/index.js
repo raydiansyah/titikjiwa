@@ -1,8 +1,14 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { initializeTheme } from "@/lib/theme";
 import "@/index.css";
 import App from "@/App";
+import "@/theme-responsive.css";
+import "@/workspace-responsive.css";
+
+// Apply the persisted/system theme before React paints to avoid a light/dark flash.
+initializeTheme();
 
 const queryClient = new QueryClient({
   defaultOptions: {
