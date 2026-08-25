@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Bell, BookOpen, CircleAlert, Download, Flag, HeartHandshake, LogOut, MessageCircle, PenLine, ShieldCheck, Sparkles, Stethoscope, UserRound, Users, Wind } from "lucide-react";
+import { ArrowLeftFromLine, ArrowRight, ArrowRightFromLine, Bell, BookOpen, CircleAlert, Download, Flag, HeartHandshake, LogOut, MessageCircle, PenLine, ShieldCheck, Sparkles, Stethoscope, UserRound, Users, Wind } from "lucide-react";
 import { api } from "@/lib/api";
 import { downloadAuraCard } from "@/lib/aura";
 import { todayPrompt } from "@/features/wellness/prompts";
@@ -16,7 +16,56 @@ import { AiCompanion } from "@/features/ai/AiCompanion";
 import { EmergencySOS } from "@/features/emergency/EmergencySOS";
 import { PsychologistView, ArticleComposer, ConsultationInbox, PsychologistHome, PsychologistProfile } from "@/features/psychologist/PsychologistFeature";
 import { AdminHome, AdminUsers, AdminView } from "@/features/admin/AdminFeature";
-export function Workspace() { const { loading, user, logout } = useAuth(); const navigate = useNavigate(); const [section, setSection] = useState("beranda"); const [showNotif, setShowNotif] = useState(false); const { data: aura } = useQuery({ queryKey: ["aura"], queryFn: () => api.get("/me/aura").then((r) => r.data), staleTime: 60000 }); const { data: notifications = [], refetch: refetchNotif } = useQuery({ queryKey: ["notifications"], queryFn: () => api.get("/notifications").then((r) => r.data), refetchInterval: 30000 }); const unread = notifications.filter((n) => !n.read).length; const toggleNotif = async () => { const next = !showNotif; setShowNotif(next); if (next && unread > 0) { await api.post("/notifications/read").catch(() => {}); refetchNotif(); } }; useEffect(() => { if (!loading && !user) navigate({ to: "/masuk" }); }, [loading, user, navigate]); if (loading || !user) return <div className="loading-screen" data-testid="workspace-loading">Menyiapkan ruangmu…</div>; const items = user.role === "admin" ? [{ id: "beranda", label: "Beranda", icon: Sparkles }, { id: "moderasi", label: "Moderasi", icon: Flag }, { id: "komunitas", label: "Linimasa", icon: Users }, { id: "teman", label: "Teman AI", icon: Wind }, { id: "belajar", label: "Belajar", icon: BookOpen }, { id: "psikolog", label: "Psikolog", icon: Stethoscope }, { id: "pengguna", label: "Pengguna", icon: UserRound }] : user.role === "psikolog" ? [{ id: "beranda", label: "Beranda", icon: Sparkles }, { id: "konsultasi", label: "Konsultasi masuk", icon: MessageCircle }, { id: "artikel", label: "Tulis artikel", icon: PenLine }, { id: "profil", label: "Profil saya", icon: UserRound }, { id: "teman", label: "Teman AI", icon: Wind }, { id: "komunitas", label: "Linimasa", icon: Users }, { id: "belajar", label: "Belajar", icon: BookOpen }] : [{ id: "beranda", label: "Beranda", icon: Sparkles }, { id: "jurnal", label: "Jurnal pribadi", icon: PenLine }, { id: "komunitas", label: "Linimasa", icon: Users }, { id: "teman", label: "Teman AI", icon: Wind }, { id: "belajar", label: "Belajar", icon: BookOpen }, { id: "psikolog", label: "Psikolog", icon: Stethoscope }]; return <div className="workspace"><aside className="workspace-sidebar"><Logo /><div className="user-chip"><span className="user-avatar" style={aura ? { background: `conic-gradient(from 40deg, ${[...aura.colors, aura.colors[0]].join(", ")})`, color: "#fff" } : {}} title={aura ? `Aura: ${aura.name}` : undefined} data-testid="user-aura-avatar">{user.alias.slice(0, 2).toUpperCase()}</span><div><strong data-testid="current-user-alias">{user.alias}</strong><span>{{ member: "Ruang pribadi", admin: "Admin", psikolog: "Psikolog terverifikasi" }[user.role] || "Ruang pribadi"}</span></div></div><nav className="workspace-nav" data-testid="workspace-navigation">{items.map(({ id, label, icon: Icon }) => <button key={id} className={section === id ? "active" : ""} onClick={() => { setSection(id); setShowNotif(false); }} data-testid={`workspace-nav-${id}-button`}><Icon size={17} />{label}{id === "komunitas" && unread > 0 && <span className="nav-dot" data-testid="nav-notif-dot" />}</button>)}</nav><div className="notif-wrap"><button className="logout-button" onClick={toggleNotif} data-testid="notif-bell-button"><Bell size={16} /> Notifikasi {unread > 0 && <span className="notif-dot" data-testid="notif-count">{unread}</span>}</button>{showNotif && <div className="notif-panel" data-testid="notif-panel">{notifications.length === 0 ? <span className="notif-empty">Belum ada kabar baru. Ceritamu aman di sini.</span> : notifications.map((n) => <div className={`notif-item ${n.read ? "" : "unread"}`} key={n.id}><span>{n.text}</span><time>{new Date(n.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}</time></div>)}</div>}</div><div className="sidebar-safe"><ShieldCheck size={17} /><span>Semua cerita komunitas ditulis anonim.</span></div><button className="logout-button" onClick={async () => { await logout(); navigate({ to: "/" }); }} data-testid="logout-button"><LogOut size={16} /> Keluar</button></aside><main className="workspace-main"><div className="workspace-mobile-head"><Logo /><button className="icon-button" onClick={async () => { await logout(); navigate({ to: "/" }); }} data-testid="mobile-logout-button"><LogOut size={18} /></button></div><WorkspaceContent section={section} user={user} /></main><EmergencySOS /><BackToTopButton /></div>; }
+
+const adminItems = [
+  { id: "beranda", label: "Dashboard", icon: Sparkles, group: "Administrasi" },
+  { id: "moderasi", label: "Moderasi", icon: Flag, group: "Administrasi" },
+  { id: "pengguna", label: "Pengguna", icon: UserRound, group: "Administrasi" },
+  { id: "psikolog", label: "Psikolog", icon: Stethoscope, group: "Administrasi" },
+  { id: "komunitas", label: "Linimasa", icon: Users, group: "Lihat sebagai pengguna" },
+  { id: "belajar", label: "Belajar", icon: BookOpen, group: "Lihat sebagai pengguna" },
+  { id: "teman", label: "Teman AI", icon: Wind, group: "Lihat sebagai pengguna" },
+];
+const psychologistItems = [
+  { id: "beranda", label: "Beranda", icon: Sparkles }, { id: "konsultasi", label: "Konsultasi masuk", icon: MessageCircle },
+  { id: "artikel", label: "Tulis artikel", icon: PenLine }, { id: "profil", label: "Profil saya", icon: UserRound },
+  { id: "teman", label: "Teman AI", icon: Wind }, { id: "komunitas", label: "Linimasa", icon: Users }, { id: "belajar", label: "Belajar", icon: BookOpen },
+];
+const memberItems = [
+  { id: "beranda", label: "Beranda", icon: Sparkles }, { id: "jurnal", label: "Jurnal pribadi", icon: PenLine },
+  { id: "komunitas", label: "Linimasa", icon: Users }, { id: "teman", label: "Teman AI", icon: Wind },
+  { id: "belajar", label: "Belajar", icon: BookOpen }, { id: "psikolog", label: "Psikolog", icon: Stethoscope },
+];
+
+export function Workspace() {
+  const { loading, user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [section, setSection] = useState("beranda");
+  const [showNotif, setShowNotif] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("titikjiwa-sidebar-collapsed") === "true");
+  const { data: aura } = useQuery({ queryKey: ["aura"], queryFn: () => api.get("/me/aura").then((r) => r.data), staleTime: 60000 });
+  const { data: notifications = [], refetch: refetchNotif } = useQuery({ queryKey: ["notifications"], queryFn: () => api.get("/notifications").then((r) => r.data), refetchInterval: 30000 });
+  const unread = notifications.filter((n) => !n.read).length;
+  const toggleNotif = async () => { const next = !showNotif; setShowNotif(next); if (next && unread > 0) { await api.post("/notifications/read").catch(() => {}); refetchNotif(); } };
+  const toggleSidebar = () => setSidebarCollapsed((current) => { const next = !current; localStorage.setItem("titikjiwa-sidebar-collapsed", String(next)); return next; });
+  useEffect(() => { if (!loading && !user) navigate({ to: "/masuk" }); }, [loading, user, navigate]);
+  if (loading || !user) return <div className="loading-screen" data-testid="workspace-loading">Menyiapkan ruangmu…</div>;
+
+  const items = user.role === "admin" ? adminItems : user.role === "psikolog" ? psychologistItems : memberItems;
+  let previousGroup = null;
+  return <div className={`workspace ${sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
+    <aside className="workspace-sidebar">
+      <Logo />
+      <div className="user-chip"><span className="user-avatar" style={aura ? { background: `conic-gradient(from 40deg, ${[...aura.colors, aura.colors[0]].join(", ")})`, color: "#fff" } : {}} title={aura ? `Aura: ${aura.name}` : undefined} data-testid="user-aura-avatar">{user.alias.slice(0, 2).toUpperCase()}</span><div><strong data-testid="current-user-alias">{user.alias}</strong><span>{{ member: "Ruang pribadi", admin: "Control panel", psikolog: "Psikolog terverifikasi" }[user.role] || "Ruang pribadi"}</span>{user.role === "admin" && <span className="role-badge">ADMIN</span>}</div></div>
+      <button type="button" className="workspace-sidebar-toggle" onClick={toggleSidebar} aria-label={sidebarCollapsed ? "Perluas sidebar" : "Ciutkan sidebar"} title={sidebarCollapsed ? "Perluas sidebar" : "Ciutkan sidebar"} data-testid="sidebar-collapse-button">{sidebarCollapsed ? <ArrowRightFromLine size={17} /> : <ArrowLeftFromLine size={17} />}<span>{sidebarCollapsed ? "Perluas" : "Ciutkan sidebar"}</span></button>
+      <nav className="workspace-nav" data-testid="workspace-navigation">{items.map(({ id, label, icon: Icon, group }) => { const groupChanged = user.role === "admin" && group && group !== previousGroup; previousGroup = group || previousGroup; return <div className="workspace-nav-entry" key={id}>{groupChanged && <div className="admin-nav-label">{group}</div>}<button aria-label={label} title={sidebarCollapsed ? label : undefined} className={section === id ? "active" : ""} onClick={() => { setSection(id); setShowNotif(false); }} data-testid={`workspace-nav-${id}-button`}><Icon size={17} /><span>{label}</span>{id === "komunitas" && unread > 0 && <span className="nav-dot" data-testid="nav-notif-dot" />}</button></div>; })}</nav>
+      <div className="notif-wrap"><button className="logout-button" onClick={toggleNotif} data-testid="notif-bell-button"><Bell size={16} /><span className="sidebar-action-label">Notifikasi</span>{unread > 0 && <span className="notif-dot" data-testid="notif-count">{unread}</span>}</button>{showNotif && <div className="notif-panel" data-testid="notif-panel">{notifications.length === 0 ? <span className="notif-empty">Belum ada kabar baru. Ceritamu aman di sini.</span> : notifications.map((n) => <div className={`notif-item ${n.read ? "" : "unread"}`} key={n.id}><span>{n.text}</span><time>{new Date(n.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}</time></div>)}</div>}</div>
+      <div className="sidebar-safe"><ShieldCheck size={17} /><span>Semua cerita komunitas ditulis anonim.</span></div>
+      <button className="logout-button" onClick={async () => { await logout(); navigate({ to: "/" }); }} data-testid="logout-button"><LogOut size={16} /><span className="sidebar-action-label">Keluar</span></button>
+    </aside>
+    <main className="workspace-main"><div className="workspace-mobile-head"><Logo /><button className="icon-button" onClick={async () => { await logout(); navigate({ to: "/" }); }} data-testid="mobile-logout-button"><LogOut size={18} /></button></div><WorkspaceContent section={section} user={user} /></main><EmergencySOS /><BackToTopButton />
+  </div>;
+}
 
 function WorkspaceContent({ section, user }) { if (section === "jurnal") return <JournalView />; if (section === "komunitas") return <CommunityView />; if (section === "belajar") return <LearningView />; if (section === "psikolog") return <PsychologistView />; if (section === "pengguna" && user.role === "admin") return <AdminUsers />; if (section === "moderasi" && user.role === "admin") return <AdminView />; if (section === "konsultasi" && user.role === "psikolog") return <ConsultationInbox />; if (section === "teman") return <AiCompanion />; if (section === "profil" && user.role === "psikolog") return <PsychologistProfile user={user} />; if (section === "artikel" && user.role === "psikolog") return <div className="workspace-content"><WorkspaceHeading eyebrow="Ruang menulis" title="Tulis panduan untuk semua." text="Bagikan insight profesionalmu dengan bahasa yang manusiawi." /><ArticleComposer /></div>; return user.role === "admin" ? <AdminHome /> : user.role === "psikolog" ? <PsychologistHome user={user} /> : <HomeWorkspace user={user} />; }
 
