@@ -1,3 +1,10 @@
+## [1.8.5](https://github.com/raydiansyah/titikjiwa/compare/v1.8.4...v1.8.5) (2026-08-25)
+
+
+### Bug Fixes
+
+* harden UI/UX, dark mode, responsive layout and admin navigation ([af47db4](https://github.com/raydiansyah/titikjiwa/commit/af47db4d5d67daaa7782e48e4cedb4e12c103e42))
+
 ## [1.8.4](https://github.com/raydiansyah/titikjiwa/compare/v1.8.3...v1.8.4) (2026-08-23)
 
 
