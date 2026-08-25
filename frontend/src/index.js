@@ -6,6 +6,7 @@ import "@/index.css";
 import App from "@/App";
 import "@/theme-responsive.css";
 import "@/workspace-responsive.css";
+import "@/ui-hardening.css";
 
 // Apply the persisted/system theme before React paints to avoid a light/dark flash.
 initializeTheme();
